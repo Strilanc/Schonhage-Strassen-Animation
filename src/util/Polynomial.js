@@ -74,22 +74,25 @@ class Polynomial {
         if (this._coefficients.length === 0) {
             return "0";
         }
-        let r = [];
-        for (let i = 0; i < this._coefficients.length; i++) {
-            let c = this._coefficients[i];
-            if (c.isZero()) {
-                continue;
-            }
+        let describeCoefficient = (c, i) => {
             let suffix = i === 0 ? "" :
                 i === 1 ? "X" :
                 "X^"+i;
-            let prefix = suffix === "" ? c.toString() :
+            let prefix = i === 0 ? c.toString() :
                 c.isOne() ? "" :
                 c.isNegativeOne() ? "-" :
                 c.toString() + "*";
-            r.push(prefix + suffix);
+            return prefix + suffix;
+        };
+
+        let parts = [];
+        for (let i = 0; i < this._coefficients.length; i++) {
+            let c = this._coefficients[i];
+            if (!c.isZero()) {
+                parts.push(describeCoefficient(c, i));
+           }
         }
-        return reversed_list(r).join(" + ").split(" + -").join(" - ");
+        return reversed_list(parts).join(" + ").split(" + -").join(" - ");
     }
 
     /**

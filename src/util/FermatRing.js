@@ -52,14 +52,11 @@ class FermatRing {
      */
     canonicalize(val) {
         val = BigInt.of(val);
-        if (val.isNegative()) {
-            let p = this.canonicalize(val.negate());
-            return p.isZero() ? p : this.divisor.minus(p);
-        }
 
         // Use the fact that 2^W = -1 to split the input into W-bit pieces to be added/subtracted.
         let remainder = BigInt.ZERO;
-        let pieces = val.splitIntoNPiecesOfSize(undefined, this.bit_capacity);
+        let pieceCount = Math.max(1, Math.ceil(val.size() / this.bit_capacity)) + 1;
+        let pieces = val.splitIntoNPiecesOfSize(pieceCount, this.bit_capacity);
         for (let i = 0; i < pieces.length; i++) {
             if ((i & 1) === 0) {
                 remainder = remainder.plus(pieces[i]);
@@ -68,12 +65,9 @@ class FermatRing {
             }
         }
 
-        // Now we're close enough to finish things off in the naive way.
-        while (!remainder.minus(this.divisor).isNegative()) {
-            remainder = remainder.minus(this.divisor);
-        }
-        while (remainder.isNegative()) {
-            remainder = remainder.plus(this.divisor);
+        // We're a lot closer now, but maybe not quite there.
+        if (remainder.isNegative() || !remainder.minus(this.divisor).isNegative()) {
+            return this.canonicalize(remainder);
         }
 
         return remainder;
@@ -88,11 +82,11 @@ class FermatRing {
      * complexity of the given multiplication function when applied to items of size W.
      */
     cyclic_convolution(list1, list2, item_multiplier) {
-        if (list1.length != this.principal_root_order) {
-            throw new Error(`bad length ${list1.length} != ${this.principal_root_order}`)
+        if (list1.length !== this.principal_root_order) {
+            throw new Error(`bad length ${list1.length} !== ${this.principal_root_order}`)
         }
-        if (list2.length != this.principal_root_order) {
-            throw new Error(`bad length ${list2.length} != ${this.principal_root_order}`)
+        if (list2.length !== this.principal_root_order) {
+            throw new Error(`bad length ${list2.length} !== ${this.principal_root_order}`)
         }
         list1 = list1.map(BigInt.of);
         list2 = list2.map(BigInt.of);
@@ -132,11 +126,11 @@ class FermatRing {
      * complexity of the given multiplication function when applied to items of size W.
      */
     negacyclic_convolution(list1, list2, item_multiplier) {
-        if (list1.length != this.principal_root_order) {
-            throw new Error(`bad length ${list1.length} != ${this.principal_root_order}`)
+        if (list1.length !== this.principal_root_order) {
+            throw new Error(`bad length ${list1.length} !== ${this.principal_root_order}`)
         }
-        if (list2.length != this.principal_root_order) {
-            throw new Error(`bad length ${list2.length} != ${this.principal_root_order}`)
+        if (list2.length !== this.principal_root_order) {
+            throw new Error(`bad length ${list2.length} !== ${this.principal_root_order}`)
         }
         list1 = list1.map(BigInt.of);
         list2 = list2.map(BigInt.of);
@@ -185,8 +179,8 @@ class FermatRing {
      * @complexity O(W*N*log(N+W)) where N is the number of list items, W is the ring's bit-size, and N=2*W.
      */
     fft(list) {
-        if (list.length != this.principal_root_order) {
-            throw new Error(`bad length ${list.length} != ${this.principal_root_order}`)
+        if (list.length !== this.principal_root_order) {
+            throw new Error(`bad length ${list.length} !== ${this.principal_root_order}`)
         }
         list = list.map(BigInt.of);
 
@@ -219,8 +213,8 @@ class FermatRing {
      * @complexity O(W*N*log(N+W)) where N is the number of list items, W is the ring's bit-size, and N=2*W.
      */
     inverse_fft(list) {
-        if (list.length != this.principal_root_order) {
-            throw new Error(`bad length ${list.length} != ${this.principal_root_order}`)
+        if (list.length !== this.principal_root_order) {
+            throw new Error(`bad length ${list.length} !== ${this.principal_root_order}`)
         }
         list = swap_index_bit_orders(list.map(BigInt.of));
 
@@ -241,8 +235,8 @@ class FermatRing {
      * @complexity O(N*W) where N is the number of list items and W is the bit-size of the ring.
      */
     _fft_helper_hadamard(list, target_bit_index) {
-        if (list.length != this.principal_root_order) {
-            throw new Error(`bad length ${list.length} != ${this.principal_root_order}`)
+        if (list.length !== this.principal_root_order) {
+            throw new Error(`bad length ${list.length} !== ${this.principal_root_order}`)
         }
         list = list.map(BigInt.of);
 
@@ -317,28 +311,28 @@ class FermatRing {
      */
     static for_convolving_values_of_size(input_size) {
         throw new Error("NOT CORRECT YET");
-        let best = undefined;
-        for (let f of [1, 2, 4, 8, 16]) {
-            let min_s = Math.max(0, Math.floor(floor_lg2(input_size / f)/2) - 1);
-            let max_s = ceil_lg2(input_size / f);
-            for (let s = min_s; s <= max_s; s++) {
-                let cap = f*(1<<s);
-                let count = 2<<s;
-                let piece = Math.ceil(input_size/count);
-                let used = piece*2 + s + 1;
-                if (used <= cap && cap < input_size) {
-                    let efficiency = used / cap;
-                    if (best === undefined || efficiency > best.efficiency) {
-                        best = {efficiency, f, s};
-                        break;
-                    }
-                }
-            }
-        }
-        if (best === undefined) {
-            throw new Error(`Failed to make progress on ${input_size}.`)
-        }
-        return new FermatRing(best.s, best.f);
+        //let best = undefined;
+        //for (let f of [1, 2, 4, 8, 16]) {
+        //    let min_s = Math.max(0, Math.floor(floor_lg2(input_size / f)/2) - 1);
+        //    let max_s = ceil_lg2(input_size / f);
+        //    for (let s = min_s; s <= max_s; s++) {
+        //        let cap = f*(1<<s);
+        //        let count = 2<<s;
+        //        let piece = Math.ceil(input_size/count);
+        //        let used = piece*2 + s + 1;
+        //        if (used <= cap && cap < input_size) {
+        //            let efficiency = used / cap;
+        //            if (best === undefined || efficiency > best.efficiency) {
+        //                best = {efficiency, f, s};
+        //                break;
+        //            }
+        //        }
+        //    }
+        //}
+        //if (best === undefined) {
+        //    throw new Error(`Failed to make progress on ${input_size}.`)
+        //}
+        //return new FermatRing(best.s, best.f);
     }
 }
 

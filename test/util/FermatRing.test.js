@@ -71,11 +71,11 @@ suite.test("canonicalize", () => {
     let r3 = new FermatRing(3);
     let r1p3 = new FermatRing(1, 3);
     for (let i = -100; i < 100; i++) {
-        assertThat(r0.canonicalize(i)).isEqualTo((i+3*100) % 3);
-        assertThat(r1.canonicalize(i)).isEqualTo((i+5*100) % 5);
-        assertThat(r2.canonicalize(i)).isEqualTo((i+17*10) % 17);
-        assertThat(r3.canonicalize(i)).isEqualTo((i+257*10) % 257);
-        assertThat(r1p3.canonicalize(i)).isEqualTo((i+65*10) % 65);
+        assertThat(r0.canonicalize(i)).withInfo({r0, i}).isEqualTo((i+3*100) % 3);
+        assertThat(r1.canonicalize(i)).withInfo({r1, i}).isEqualTo((i+5*100) % 5);
+        assertThat(r2.canonicalize(i)).withInfo({r2, i}).isEqualTo((i+17*10) % 17);
+        assertThat(r3.canonicalize(i)).withInfo({r3, i}).isEqualTo((i+257*10) % 257);
+        assertThat(r1p3.canonicalize(i)).withInfo({r1p3, i}).isEqualTo((i+65*10) % 65);
     }
 });
 

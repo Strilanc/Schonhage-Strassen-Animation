@@ -118,7 +118,7 @@ class BigInt {
 
     /**
      * Breaks the receiving integer into little-endian words of base 2^(bitsPerPiece).
-     * @param {undefined|!int} pieceCount
+     * @param {!int} pieceCount
      * @param {!int} bitsPerPiece
      * @returns {!Array.<!BigInt>}
      * @complexity O(N + P*B) where N is the bit-size, P is the piece count, B is the bits per piece
@@ -126,7 +126,7 @@ class BigInt {
     splitIntoNPiecesOfSize(pieceCount, bitsPerPiece) {
         let pieces = [];
         let offset = 0;
-        while (pieceCount === undefined ? offset < this._bits.length : pieces.length < pieceCount) {
+        while (pieces.length < pieceCount) {
             let pieceTail = this._tail && pieces.length === pieceCount-1;
 
             let bits = this._bits.slice(offset, offset+bitsPerPiece);
