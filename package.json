@@ -1,0 +1,35 @@
+{
+  "name": "schonhage-strassen-integer-multiplication",
+  "title": "Schönhage–Strassen Integer Multiplication",
+  "description": "An example implementation of FFT-based integer multiplication.",
+  "license": "Apache-2.0",
+  "version": "1.0.0",
+  "homepage": "https://github.com/Strilanc/Schönhage–Strassen",
+  "bugs": {
+    "url": "https://github.com/Strilanc/Schönhage–Strassen/issues"
+  },
+  "devDependencies": {
+    "grunt": "~1.0.1",
+    "grunt-cli": "~1.2.0",
+    "grunt-contrib-clean": "~1.0.0",
+    "grunt-contrib-concat": "~1.0.1",
+    "grunt-contrib-copy": "~1.0.0",
+    "grunt-karma": "~2.0.0",
+    "grunt-traceur": "~0.5.5",
+    "karma": "~1.1.0",
+    "karma-chrome-launcher": "~1.0.1",
+    "karma-firefox-launcher": "~1.0.0",
+    "traceur": "0.0.111"
+  },
+  "scripts": {
+    "build": "grunt build-src",
+    "test": "grunt test",
+    "test-chrome": "grunt test-chrome",
+    "test-firefox": "grunt test-firefox",
+    "test-travis": "grunt test-travis"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Strilanc/Quirk.git"
+  }
+}
