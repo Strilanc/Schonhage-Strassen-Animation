@@ -1,12 +1,12 @@
 {
-  "name": "schonhage-strassen-integer-multiplication",
-  "title": "Schönhage–Strassen Integer Multiplication",
-  "description": "An example implementation of FFT-based integer multiplication.",
+  "name": "multiplication-examples",
+  "title": "Multiplication Examples",
+  "description": "Example implementations of various multiplication algorithms.",
   "license": "Apache-2.0",
   "version": "1.0.0",
-  "homepage": "https://github.com/Strilanc/Schönhage–Strassen",
+  "homepage": "https://github.com/Strilanc/multiplication-algorithm-examples-js",
   "bugs": {
-    "url": "https://github.com/Strilanc/Schönhage–Strassen/issues"
+    "url": "https://github.com/Strilanc/multiplication-algorithm-examples-js/issues"
   },
   "devDependencies": {
     "grunt": "~1.0.1",
@@ -30,6 +30,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Strilanc/Quirk.git"
+    "url": "https://github.com/Strilanc/multiplication-algorithm-examples-js"
   }
 }

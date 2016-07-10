@@ -6,7 +6,7 @@ import {reversed_list} from "src/util/util.js"
  * Uses a little-endian 2s-complement format, where -1 is stored as 111111111...[implicitly goes on forever]. The
  * 'tail' boolean is the forever-repeated bit that comes after the booleans in the finite bits array.
  *
- * NOTE: MULTIPLICATION IS NOT DEFINED HERE! SEE SchonhageStrassen.js
+ * NOTE: doesn't define a multiplication method.
  */
 class BigInt {
     /**

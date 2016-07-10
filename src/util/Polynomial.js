@@ -1,6 +1,9 @@
 import BigInt from "src/util/BigInt.js"
 import {reversed_list, exact_lg2, swap_index_bit_orders, splice_bit, repeat} from "src/util/util.js"
 
+/**
+ * A linear combination of powers of X.
+ */
 class Polynomial {
     /**
      * @param {!Array.<!BigInt> | !Array.<!int> | !Array.<!BigInt | !int>} coefficients
