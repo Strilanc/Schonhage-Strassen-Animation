@@ -87,27 +87,9 @@ function ring_for_size(bit_size) {
     return best.r;
 }
 
-/**
- * @param {!FermatRing} outer_ring
- * @return {!{piece_count_exponent: !int, inner_ring: !FermatRing}}
- */
-function sub_parameters_for_multiplying_values_in_ring(outer_ring) {
-    let s = outer_ring.principal_root_exponent;
-    let p = outer_ring.bit_padding_factor + 1;
-    if (s > p || p > 2*s) {
-        throw Error("Bad starting ring.");
-    }
-    let s2 = Math.ceil(s/2) + 1;
-    let p2 = Math.ceil(p/2) + 1;
-    let piece_count_exponent = Math.floor(s/2) + 1;
-    let inner_ring = new FermatRing(s2, p2 - 1);
-    return {piece_count_exponent, inner_ring};
-}
-
 export {
     multiply_SchonhageStrassen,
     ring_for_size,
-    multiply_SchonhageStrassen_ring,
-    sub_parameters_for_multiplying_values_in_ring
+    multiply_SchonhageStrassen_ring
 }
 export default multiply_SchonhageStrassen;
