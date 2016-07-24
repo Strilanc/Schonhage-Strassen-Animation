@@ -36,6 +36,8 @@ suite.test("ring_for_size", () => {
     assertThrows(() => ring_for_size(7));
     assertThrows(() => ring_for_size(8));
 
+    // Note: these aren't really *required results* so much as noting down how it behaves for various sizes.
+
     assertThat(ring_for_size(9)).isEqualTo(new FermatRing(2, 2));
     assertThat(ring_for_size(10)).isEqualTo(new FermatRing(2, 2));
     assertThat(ring_for_size(11)).isEqualTo(new FermatRing(2, 2));
@@ -75,4 +77,7 @@ suite.test("ring_for_size", () => {
     assertThat(ring_for_size(100000000)).isEqualTo(new FermatRing(12, 11));
     assertThat(ring_for_size(1000000000)).isEqualTo(new FermatRing(13, 15));
     assertThat(ring_for_size(10000000000)).isEqualTo(new FermatRing(15, 14));
+    assertThat(ring_for_size(100000000000)).isEqualTo(new FermatRing(16, 24));
+    assertThat(ring_for_size(1000000000000)).isEqualTo(new FermatRing(18, 17));
+    assertThat(ring_for_size(10000000000000)).isEqualTo(new FermatRing(19, 37));
 });
