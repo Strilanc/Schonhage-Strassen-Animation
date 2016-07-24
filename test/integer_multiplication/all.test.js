@@ -4,7 +4,7 @@ import Polynomial from "src/util/Polynomial.js"
 import FermatRing from "src/util/FermatRing.js"
 import multiply_integer_Schoolbook from "src/integer_multiplication/Schoolbook.js"
 import multiply_integer_Karatsuba from "src/integer_multiplication/Karatsuba.js"
-import multiply_integer_FFT from "src/integer_multiplication/FFT.js"
+import multiply_integer_FFT from "src/integer_multiplication/FastFourierTransform_Xn.js"
 import multiply_SchonhageStrassen from "src/integer_multiplication/SchonhageStrassen.js"
 
 let suite = new Suite("integer_multiplication");

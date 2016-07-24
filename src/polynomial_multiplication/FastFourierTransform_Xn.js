@@ -6,6 +6,7 @@ import multiply_polynomial_Schoolbook from "src/polynomial_multiplication/School
 import {ceil_lg2} from "src/util/util.js"
 
 /**
+ * Performs the multiplication via an FFT-based convolution using X as a 2N'th principal root of unity modulo X^N+1.
  * @param {!int | !BigInt | !Polynomial} a
  * @param {!int | !BigInt | !Polynomial} b
  * @param {Infinity|!int=Infinity} negativeDegreeExponent The k where X^(2^k) is congruent to -1, if any.
