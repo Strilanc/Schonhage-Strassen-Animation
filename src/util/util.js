@@ -1,10 +1,32 @@
+/**
+ * @param {!int | *} val
+ * @returns {!int|undefined}
+ */
+function exact_lg2(val) {
+    if (val < 1 || !Number.isInteger(val) || (val & (val-1)) !== 0) {
+        return undefined;
+    }
+    let result = 0;
+    while (val > 1) {
+        val >>= 1;
+        result++;
+    }
+    return result;
+}
 
 /**
  * @param {!int} val
  * @returns {!int}
  */
 function floor_lg2(val) {
-    return val < 2 ? 0 : floor_lg2(val>>1)+1;
+    if (val < 1 || !Number.isInteger(val)) {
+        throw new Error("val isn't a positive integer")
+    }
+    let s = Math.ceil(Math.log2(val));
+    if ((1<<s) > val) {
+        s -= 1;
+    }
+    return s;
 }
 
 /**
@@ -12,7 +34,17 @@ function floor_lg2(val) {
  * @returns {!int}
  */
 function ceil_lg2(val) {
-    return val <= 1 ? 0 : ceil_lg2((val+1)>>1)+1;
+    if (!Number.isInteger(val)) {
+        throw new Error("val isn't a positive integer")
+    }
+    if (val < 1) {
+        return 0;
+    }
+    let s = Math.floor(Math.log2(val));
+    if ((1<<s) < val) {
+        s += 1;
+    }
+    return s;
 }
 /**
  * @param {!int} val
@@ -92,22 +124,6 @@ function repeat(value, length) {
  */
 function proper_mod(a, b) {
     return ((a%b)+b)%b;
-}
-
-/**
- * @param {!int | *} val
- * @returns {!int|undefined}
- */
-function exact_lg2(val) {
-    if (val < 1 || !Number.isInteger(val) || (val & (val-1)) !== 0) {
-        return undefined;
-    }
-    let result = 0;
-    while (val > 1) {
-        val >>= 1;
-        result++;
-    }
-    return result;
 }
 
 export {repeat, splice_bit, reversed_list, swap_index_bit_orders, floor_lg2, ceil_lg2, exact_lg2, proper_mod}

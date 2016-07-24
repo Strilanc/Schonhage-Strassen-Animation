@@ -6,7 +6,7 @@ let suite = new Suite("FermatRing");
 
 suite.test("constructor", () => {
     let r0 = new FermatRing(0);
-    assertThat(r0.divisor).isEqualTo(3);
+    assertThat(r0.divisor()).isEqualTo(3);
     assertThat(r0.principal_root).isEqualTo(2);
     assertThat(r0.principal_root_order).isEqualTo(2);
     assertThat(r0.bit_capacity).isEqualTo(1);
@@ -14,7 +14,7 @@ suite.test("constructor", () => {
     assertThat(r0.bit_padding_factor).isEqualTo(1);
 
     let r1 = new FermatRing(1);
-    assertThat(r1.divisor).isEqualTo(5);
+    assertThat(r1.divisor()).isEqualTo(5);
     assertThat(r1.principal_root).isEqualTo(2);
     assertThat(r1.principal_root_order).isEqualTo(4);
     assertThat(r1.bit_capacity).isEqualTo(2);
@@ -22,7 +22,7 @@ suite.test("constructor", () => {
     assertThat(r1.bit_padding_factor).isEqualTo(1);
 
     let r2 = new FermatRing(2);
-    assertThat(r2.divisor).isEqualTo(17);
+    assertThat(r2.divisor()).isEqualTo(17);
     assertThat(r2.principal_root).isEqualTo(2);
     assertThat(r2.principal_root_order).isEqualTo(8);
     assertThat(r2.bit_capacity).isEqualTo(4);
@@ -30,7 +30,7 @@ suite.test("constructor", () => {
     assertThat(r2.bit_padding_factor).isEqualTo(1);
 
     let r3 = new FermatRing(3);
-    assertThat(r3.divisor).isEqualTo(257);
+    assertThat(r3.divisor()).isEqualTo(257);
     assertThat(r3.principal_root).isEqualTo(2);
     assertThat(r3.principal_root_order).isEqualTo(16);
     assertThat(r3.bit_capacity).isEqualTo(8);
@@ -38,7 +38,7 @@ suite.test("constructor", () => {
     assertThat(r3.bit_padding_factor).isEqualTo(1);
 
     let r9 = new FermatRing(9);
-    assertThat(r9.divisor).isEqualTo(BigInt.parse(
+    assertThat(r9.divisor()).isEqualTo(BigInt.parse(
         "013407807929942597099574024998205846127479365820592393377723561443721764030073" +
         "546976801874298166903427690031858186486050853753882811946569946433649006084097"));
     assertThat(r9.principal_root).isEqualTo(2);
@@ -48,7 +48,7 @@ suite.test("constructor", () => {
     assertThat(r9.bit_padding_factor).isEqualTo(1);
 
     let r4p2 = new FermatRing(4, 2);
-    assertThat(r4p2.divisor).isEqualTo(4294967297);
+    assertThat(r4p2.divisor()).isEqualTo(4294967297);
     assertThat(r4p2.principal_root).isEqualTo(4);
     assertThat(r4p2.principal_root_order).isEqualTo(32);
     assertThat(r4p2.bit_capacity).isEqualTo(32);
@@ -56,7 +56,7 @@ suite.test("constructor", () => {
     assertThat(r4p2.bit_padding_factor).isEqualTo(2);
 
     let r4p3 = new FermatRing(4, 3);
-    assertThat(r4p3.divisor).isEqualTo(281474976710657);
+    assertThat(r4p3.divisor()).isEqualTo(281474976710657);
     assertThat(r4p3.principal_root).isEqualTo(8);
     assertThat(r4p3.principal_root_order).isEqualTo(32);
     assertThat(r4p3.bit_capacity).isEqualTo(48);
@@ -64,18 +64,38 @@ suite.test("constructor", () => {
     assertThat(r4p3.bit_padding_factor).isEqualTo(3);
 });
 
+let comparisonMod = (i, d) => {
+    i %= d;
+    i += d;
+    i %= d;
+    if (i === d - 1) {
+        i -= d;
+    }
+    return i;
+};
+
 suite.test("canonicalize", () => {
     let r0 = new FermatRing(0);
     let r1 = new FermatRing(1);
     let r2 = new FermatRing(2);
     let r3 = new FermatRing(3);
     let r1p3 = new FermatRing(1, 3);
+
+    assertThat(r1.canonicalize(-2)).isEqualTo(3);
+    assertThat(r1.canonicalize(-1)).isEqualTo(-1);
+    assertThat(r1.canonicalize(0)).isEqualTo(0);
+    assertThat(r1.canonicalize(1)).isEqualTo(1);
+    assertThat(r1.canonicalize(2)).isEqualTo(2);
+    assertThat(r1.canonicalize(3)).isEqualTo(3);
+    assertThat(r1.canonicalize(4)).isEqualTo(-1);
+    assertThat(r1.canonicalize(5)).isEqualTo(0);
+
     for (let i = -100; i < 100; i++) {
-        assertThat(r0.canonicalize(i)).withInfo({r0, i}).isEqualTo((i+3*100) % 3);
-        assertThat(r1.canonicalize(i)).withInfo({r1, i}).isEqualTo((i+5*100) % 5);
-        assertThat(r2.canonicalize(i)).withInfo({r2, i}).isEqualTo((i+17*10) % 17);
-        assertThat(r3.canonicalize(i)).withInfo({r3, i}).isEqualTo((i+257*10) % 257);
-        assertThat(r1p3.canonicalize(i)).withInfo({r1p3, i}).isEqualTo((i+65*10) % 65);
+        assertThat(r0.canonicalize(i)).withInfo({r0, i}).isEqualTo(comparisonMod(i, 3));
+        assertThat(r1.canonicalize(i)).withInfo({r1, i}).isEqualTo(comparisonMod(i, 5));
+        assertThat(r2.canonicalize(i)).withInfo({r2, i}).isEqualTo(comparisonMod(i, 17));
+        assertThat(r3.canonicalize(i)).withInfo({r3, i}).isEqualTo(comparisonMod(i, 257));
+        assertThat(r1p3.canonicalize(i)).withInfo({r1p3, i}).isEqualTo(comparisonMod(i, 65));
     }
 });
 
@@ -87,24 +107,24 @@ suite.test("_times2RaisedTo", () => {
     let r1p3 = new FermatRing(1, 3);
     for (let i = 0; i < 10; i++) {
         for (let s = 0; s < 10; s++) {
-            assertThat(r0._times2RaisedTo(i, s)).isEqualTo((i<<s) % 3);
-            assertThat(r1._times2RaisedTo(i, s)).isEqualTo((i<<s) % 5);
-            assertThat(r2._times2RaisedTo(i, s)).isEqualTo((i<<s) % 17);
-            assertThat(r3._times2RaisedTo(i, s)).isEqualTo((i<<s) % 257);
-            assertThat(r1p3._times2RaisedTo(i, s)).isEqualTo((i<<s) % 65);
+            assertThat(r0._times2RaisedTo(i, s)).isEqualTo(comparisonMod(i<<s, 3));
+            assertThat(r1._times2RaisedTo(i, s)).isEqualTo(comparisonMod(i<<s, 5));
+            assertThat(r2._times2RaisedTo(i, s)).isEqualTo(comparisonMod(i<<s, 17));
+            assertThat(r3._times2RaisedTo(i, s)).isEqualTo(comparisonMod(i<<s, 257));
+            assertThat(r1p3._times2RaisedTo(i, s)).isEqualTo(comparisonMod(i<<s, 65));
         }
     }
-    assertThat(r2._times2RaisedTo(1,-1)).isEqualTo(-8+17);
+    assertThat(r2._times2RaisedTo(1, -1)).isEqualTo(-8+17);
 
     let r7 = new FermatRing(5);
     assertThat(r7._times2RaisedTo(1, 31)).isEqualTo(2147483648);
-    assertThat(r7._times2RaisedTo(1, 32)).isEqualTo(4294967296);
+    assertThat(r7._times2RaisedTo(1, 32)).isEqualTo(-1);
     assertThat(r7._times2RaisedTo(1, 33)).isEqualTo(4294967295);
     assertThat(r7._times2RaisedTo(1, 63)).isEqualTo(2147483649);
     assertThat(r7._times2RaisedTo(1, 64)).isEqualTo(1);
     assertThat(r7._times2RaisedTo(1, 65)).isEqualTo(2);
     assertThat(r7._times2RaisedTo(1, -33)).isEqualTo(2147483648);
-    assertThat(r7._times2RaisedTo(1, -32)).isEqualTo(4294967296);
+    assertThat(r7._times2RaisedTo(1, -32)).isEqualTo(-1);
     assertThat(r7._times2RaisedTo(1, -31)).isEqualTo(4294967295);
 
     let r2p5 = new FermatRing(2, 5);
@@ -113,7 +133,7 @@ suite.test("_times2RaisedTo", () => {
     assertThat(r2p5._times2RaisedTo(1, 5)).isEqualTo(32);
     assertThat(r2p5._times2RaisedTo(1, 10)).isEqualTo(1024);
     assertThat(r2p5._times2RaisedTo(1, 15)).isEqualTo(32768);
-    assertThat(r2p5._times2RaisedTo(1, 20)).isEqualTo(1048576);
+    assertThat(r2p5._times2RaisedTo(1, 20)).isEqualTo(-1);
     assertThat(r2p5._times2RaisedTo(1, 25)).isEqualTo(1048545);
     assertThat(r2p5._times2RaisedTo(1, 30)).isEqualTo(1047553);
     assertThat(r2p5._times2RaisedTo(1, 35)).isEqualTo(1015809);
@@ -208,44 +228,44 @@ suite.test("fft", () => {
     let r2 = new FermatRing(2);
     assertThat(r2.fft([1, 0, 0, 0, 0, 0, 0, 0])).isEqualTo([1, 1, 1, 1, 1, 1, 1, 1]);
     assertThat(r2.fft([0, 1, 0, 0, 0, 0, 0, 0])).isEqualTo([1, 2, 4, 8, -1, -2, -4, -8].map(e => r2.canonicalize(e)));
-    assertThat(r2.fft([0, 1, 0, 0, 0, 0, 0, 0])).isEqualTo([1, 2, 4, 8, 16, 15, 13, 9]);
-    assertThat(r2.fft([0, 0, 1, 0, 0, 0, 0, 0])).isEqualTo([1, 4, 16, 13, 1, 4, 16, 13]);
-    assertThat(r2.fft([0, 0, 0, 1, 0, 0, 0, 0])).isEqualTo([1, 8, 13, 2, 16, 9, 4, 15]);
-    assertThat(r2.fft([0, 0, 0, 0, 1, 0, 0, 0])).isEqualTo([1, 16, 1, 16, 1, 16, 1, 16]);
-    assertThat(r2.fft([0, 0, 0, 0, 0, 1, 0, 0])).isEqualTo([1, 15, 4, 9, 16, 2, 13, 8]);
-    assertThat(r2.fft([0, 0, 0, 0, 0, 0, 1, 0])).isEqualTo([1, 13, 16, 4, 1, 13, 16, 4]);
-    assertThat(r2.fft([0, 0, 0, 0, 0, 0, 0, 1])).isEqualTo([1, 9, 13, 15, 16, 8, 4, 2]);
+    assertThat(r2.fft([0, 1, 0, 0, 0, 0, 0, 0])).isEqualTo([1, 2, 4, 8, -1, 15, 13, 9]);
+    assertThat(r2.fft([0, 0, 1, 0, 0, 0, 0, 0])).isEqualTo([1, 4, -1, 13, 1, 4, -1, 13]);
+    assertThat(r2.fft([0, 0, 0, 1, 0, 0, 0, 0])).isEqualTo([1, 8, 13, 2, -1, 9, 4, 15]);
+    assertThat(r2.fft([0, 0, 0, 0, 1, 0, 0, 0])).isEqualTo([1, -1, 1, -1, 1, -1, 1, -1]);
+    assertThat(r2.fft([0, 0, 0, 0, 0, 1, 0, 0])).isEqualTo([1, 15, 4, 9, -1, 2, 13, 8]);
+    assertThat(r2.fft([0, 0, 0, 0, 0, 0, 1, 0])).isEqualTo([1, 13, -1, 4, 1, 13, -1, 4]);
+    assertThat(r2.fft([0, 0, 0, 0, 0, 0, 0, 1])).isEqualTo([1, 9, 13, 15, -1, 8, 4, 2]);
 
     assertThat(r2.fft([1, 1, 1, 1, 1, 1, 1, 1])).isEqualTo([8, 0, 0, 0, 0, 0, 0, 0]);
     assertThat(r2.fft([0, 0, 1, 0, 0, 0, 0, 1])).isEqualTo([2, 13, 12, 11, 0, 12, 3, 15]);
 
     let r1p3 = new FermatRing(1, 3);
     assertThat(r1p3.fft([1, 0, 0, 0])).isEqualTo([1, 1, 1, 1]);
-    assertThat(r1p3.fft([0, 1, 0, 0])).isEqualTo([1, 8, 64, 57]);
-    assertThat(r1p3.fft([0, 0, 1, 0])).isEqualTo([1, 64, 1, 64]);
-    assertThat(r1p3.fft([0, 0, 0, 1])).isEqualTo([1, 57, 64, 8]);
+    assertThat(r1p3.fft([0, 1, 0, 0])).isEqualTo([1, 8, -1, 57]);
+    assertThat(r1p3.fft([0, 0, 1, 0])).isEqualTo([1, -1, 1, -1]);
+    assertThat(r1p3.fft([0, 0, 0, 1])).isEqualTo([1, 57, -1, 8]);
 });
 
 suite.test("inverse_fft", () => {
     let r2 = new FermatRing(2);
 
     assertThat(r2.inverse_fft([1, 1, 1, 1, 1, 1, 1, 1])).isEqualTo([1, 0, 0, 0, 0, 0, 0, 0]);
-    assertThat(r2.inverse_fft([1, 2, 4, 8, 16, 15, 13, 9])).isEqualTo([0, 1, 0, 0, 0, 0, 0, 0]);
-    assertThat(r2.inverse_fft([1, 4, 16, 13, 1, 4, 16, 13])).isEqualTo([0, 0, 1, 0, 0, 0, 0, 0]);
-    assertThat(r2.inverse_fft([1, 8, 13, 2, 16, 9, 4, 15])).isEqualTo([0, 0, 0, 1, 0, 0, 0, 0]);
-    assertThat(r2.inverse_fft([1, 16, 1, 16, 1, 16, 1, 16])).isEqualTo([0, 0, 0, 0, 1, 0, 0, 0]);
-    assertThat(r2.inverse_fft([1, 15, 4, 9, 16, 2, 13, 8])).isEqualTo([0, 0, 0, 0, 0, 1, 0, 0]);
-    assertThat(r2.inverse_fft([1, 13, 16, 4, 1, 13, 16, 4])).isEqualTo([0, 0, 0, 0, 0, 0, 1, 0]);
-    assertThat(r2.inverse_fft([1, 9, 13, 15, 16, 8, 4, 2])).isEqualTo([0, 0, 0, 0, 0, 0, 0, 1]);
+    assertThat(r2.inverse_fft([1, 2, 4, 8, -1, 15, 13, 9])).isEqualTo([0, 1, 0, 0, 0, 0, 0, 0]);
+    assertThat(r2.inverse_fft([1, 4, -1, 13, 1, 4, -1, 13])).isEqualTo([0, 0, 1, 0, 0, 0, 0, 0]);
+    assertThat(r2.inverse_fft([1, 8, 13, 2, -1, 9, 4, 15])).isEqualTo([0, 0, 0, 1, 0, 0, 0, 0]);
+    assertThat(r2.inverse_fft([1, -1, 1, -1, 1, -1, 1, -1])).isEqualTo([0, 0, 0, 0, 1, 0, 0, 0]);
+    assertThat(r2.inverse_fft([1, 15, 4, 9, -1, 2, 13, 8])).isEqualTo([0, 0, 0, 0, 0, 1, 0, 0]);
+    assertThat(r2.inverse_fft([1, 13, -1, 4, 1, 13, -1, 4])).isEqualTo([0, 0, 0, 0, 0, 0, 1, 0]);
+    assertThat(r2.inverse_fft([1, 9, 13, 15, -1, 8, 4, 2])).isEqualTo([0, 0, 0, 0, 0, 0, 0, 1]);
 
     assertThat(r2.inverse_fft([8, 0, 0, 0, 0, 0, 0, 0])).isEqualTo([1, 1, 1, 1, 1, 1, 1, 1]);
-    assertThat(r2.inverse_fft([0, 8, 0, 0, 0, 0, 0, 0])).isEqualTo([1, 9, 13, 15, 16, 8, 4, 2]);
-    assertThat(r2.inverse_fft([0, 0, 8, 0, 0, 0, 0, 0])).isEqualTo([1, 13, 16, 4, 1, 13, 16, 4]);
-    assertThat(r2.inverse_fft([0, 0, 0, 8, 0, 0, 0, 0])).isEqualTo([1, 15, 4, 9, 16, 2, 13, 8]);
-    assertThat(r2.inverse_fft([0, 0, 0, 0, 8, 0, 0, 0])).isEqualTo([1, 16, 1, 16, 1, 16, 1, 16]);
-    assertThat(r2.inverse_fft([0, 0, 0, 0, 0, 8, 0, 0])).isEqualTo([1, 8, 13, 2, 16, 9, 4, 15]);
-    assertThat(r2.inverse_fft([0, 0, 0, 0, 0, 0, 8, 0])).isEqualTo([1, 4, 16, 13, 1, 4, 16, 13]);
-    assertThat(r2.inverse_fft([0, 0, 0, 0, 0, 0, 0, 8])).isEqualTo([1, 2, 4, 8, 16, 15, 13, 9]);
+    assertThat(r2.inverse_fft([0, 8, 0, 0, 0, 0, 0, 0])).isEqualTo([1, 9, 13, 15, -1, 8, 4, 2]);
+    assertThat(r2.inverse_fft([0, 0, 8, 0, 0, 0, 0, 0])).isEqualTo([1, 13, -1, 4, 1, 13, -1, 4]);
+    assertThat(r2.inverse_fft([0, 0, 0, 8, 0, 0, 0, 0])).isEqualTo([1, 15, 4, 9, -1, 2, 13, 8]);
+    assertThat(r2.inverse_fft([0, 0, 0, 0, 8, 0, 0, 0])).isEqualTo([1, -1, 1, -1, 1, -1, 1, -1]);
+    assertThat(r2.inverse_fft([0, 0, 0, 0, 0, 8, 0, 0])).isEqualTo([1, 8, 13, 2, -1, 9, 4, 15]);
+    assertThat(r2.inverse_fft([0, 0, 0, 0, 0, 0, 8, 0])).isEqualTo([1, 4, -1, 13, 1, 4, -1, 13]);
+    assertThat(r2.inverse_fft([0, 0, 0, 0, 0, 0, 0, 8])).isEqualTo([1, 2, 4, 8, -1, 15, 13, 9]);
 
     assertThat(r2.inverse_fft([1, 1, 1, 1, 1, 1, 1, 1])).isEqualTo([1, 0, 0, 0, 0, 0, 0, 0]);
     assertThat(r2.inverse_fft([2, 13, 12, 11, 0, 12, 3, 15])).isEqualTo([0, 0, 1, 0, 0, 0, 0, 1]);
@@ -325,16 +345,16 @@ suite.test("cyclic_convolution", () => {
     assertThat(c1([_, _, _, 1], [_, _, 1, _])).isEqualTo([_, 1, _, _]);
     assertThat(c1([_, _, _, 1], [_, _, _, 1])).isEqualTo([_, _, 1, _]);
 
-    assertThat(c1([1, 2, 3, 4], [1, _, _, _])).isEqualTo([1, 2, 3, 4]);
-    assertThat(c1([1, 2, 3, 4], [_, 2, _, _])).isEqualTo([3, 2, 4, 1]);
-    assertThat(c1([1, 2, 3, 4], [_, _, 3, _])).isEqualTo([4, 2, 3, 1]);
-    assertThat(c1([1, 2, 3, 4], [_, _, _, 4])).isEqualTo([3, 2, 1, 4]);
-    assertThat(c1([1, 2, 3, 4], [1, 2, _, _])).isEqualTo([4, 4, 2, 0]);
+    assertThat(c1([1, 2, 3, 4], [1, _, _, _])).isEqualTo([1, 2, 3, -1]);
+    assertThat(c1([1, 2, 3, 4], [_, 2, _, _])).isEqualTo([3, 2, -1, 1]);
+    assertThat(c1([1, 2, 3, 4], [_, _, 3, _])).isEqualTo([-1, 2, 3, 1]);
+    assertThat(c1([1, 2, 3, 4], [_, _, _, 4])).isEqualTo([3, 2, 1, -1]);
+    assertThat(c1([1, 2, 3, 4], [1, 2, _, _])).isEqualTo([-1, -1, 2, 0]);
     assertThat(c1([1, 2, 3, 4], [1, 2, 3, _])).isEqualTo([3, 1, 0, 1]);
     assertThat(c1([1, 2, 3, 4], [1, 2, 3, 4])).isEqualTo([1, 3, 1, 0]);
     assertThat(c1p3([1, 2, 3, 4], [1, 2, 3, 4])).isEqualTo([26, 28, 26, 20]);
 
-    assertThat(c2([1, 2, 3, 4, 5, 6, 7, 8], [2, _, _, _, _, _, _, _])).isEqualTo([2, 4, 6, 8, 10, 12, 14, 16]);
+    assertThat(c2([1, 2, 3, 4, 5, 6, 7, 8], [2, _, _, _, _, _, _, _])).isEqualTo([2, 4, 6, 8, 10, 12, 14, -1]);
     assertThat(c2([1, 2, 3, 4, 5, 6, 7, 8], [_, 3, _, _, _, _, _, _])).isEqualTo([7, 3, 6, 9, 12, 15, 1, 4]);
     assertThat(c2([1, 2, 3, 4, 5, 6, 7, 8], [2, 3, _, _, _, _, _, _])).isEqualTo([9, 7, 12, 0, 5, 10, 15, 3]);
 
@@ -358,23 +378,23 @@ suite.test("negacyclic_convolution", () => {
     assertThat(n1p2([_, 1, _, _], [1, _, _, _])).isEqualTo([_, 1, _, _]);
     assertThat(n1p2([_, 1, _, _], [_, 1, _, _])).isEqualTo([_, _, 1, _]);
     assertThat(n1p2([_, 1, _, _], [_, _, 1, _])).isEqualTo([_, _, _, 1]);
-    assertThat(n1p2([_, 1, _, _], [_, _, _, 1])).isEqualTo([16, _, _, _]);
+    assertThat(n1p2([_, 1, _, _], [_, _, _, 1])).isEqualTo([-1, _, _, _]);
 
     assertThat(n1p2([_, _, 1, _], [1, _, _, _])).isEqualTo([_, _, 1, _]);
     assertThat(n1p2([_, _, 1, _], [_, 1, _, _])).isEqualTo([_, _, _, 1]);
-    assertThat(n1p2([_, _, 1, _], [_, _, 1, _])).isEqualTo([16, _, _, _]);
-    assertThat(n1p2([_, _, 1, _], [_, _, _, 1])).isEqualTo([_, 16, _, _]);
+    assertThat(n1p2([_, _, 1, _], [_, _, 1, _])).isEqualTo([-1, _, _, _]);
+    assertThat(n1p2([_, _, 1, _], [_, _, _, 1])).isEqualTo([_, -1, _, _]);
 
     assertThat(n1p2([_, _, _, 1], [1, _, _, _])).isEqualTo([_, _, _, 1]);
-    assertThat(n1p2([_, _, _, 1], [_, 1, _, _])).isEqualTo([16, _, _, _]);
-    assertThat(n1p2([_, _, _, 1], [_, _, 1, _])).isEqualTo([_, 16, _, _]);
-    assertThat(n1p2([_, _, _, 1], [_, _, _, 1])).isEqualTo([_, _, 16, _]);
+    assertThat(n1p2([_, _, _, 1], [_, 1, _, _])).isEqualTo([-1, _, _, _]);
+    assertThat(n1p2([_, _, _, 1], [_, _, 1, _])).isEqualTo([_, -1, _, _]);
+    assertThat(n1p2([_, _, _, 1], [_, _, _, 1])).isEqualTo([_, _, -1, _]);
 
     assertThat(n1p2([1, 2, 3, 4], [1, _, _, _])).isEqualTo([1, 2, 3, 4]);
     assertThat(n1p2([1, 2, 3, 4], [_, 2, _, _])).isEqualTo([17-8, 2, 4, 6]);
     assertThat(n1p2([1, 2, 3, 4], [1, 2, _, _])).isEqualTo([10, 4, 7, 10]);
     assertThat(n1p2([1, 2, 3, 4], [_, _, 3, _])).isEqualTo([8, 5, 3, 6]);
-    assertThat(n1p2([1, 2, 3, 4], [1, 2, 3, _])).isEqualTo([1, 9, 10, 16]);
+    assertThat(n1p2([1, 2, 3, 4], [1, 2, 3, _])).isEqualTo([1, 9, 10, -1]);
     assertThat(n1p2([1, 2, 3, 4], [_, _, _, 4])).isEqualTo([9, 5, 1, 4]);
     assertThat(n1p2([1, 2, 3, 4], [1, 2, 3, 4])).isEqualTo([10, 14, 11, 3]);
 
@@ -433,54 +453,3 @@ suite.test("negacyclic_convolution_vs_naive", () => {
 suite.test("toString", () => {
     assertThat(new FermatRing(5, 2).toString()).isNotEqualTo(undefined);
 });
-
-//suite.test("for_convolving_values_of_size", () => {
-//    let chain = [
-//        {inp:0, cap:undefined, s:undefined, f:undefined},
-//        {inp:1, cap:undefined, s:undefined, f:undefined},
-//        {inp:2, cap:undefined, s:undefined, f:undefined},
-//        {inp:3, cap:undefined, s:undefined, f:undefined},
-//        {inp:4, cap:undefined, s:undefined, f:undefined},
-//        {inp:5, cap:undefined, s:undefined, f:undefined},
-//        {inp:6, cap:undefined, s:undefined, f:undefined},
-//        {inp:7,  cap:6,  s:1, f:3},
-//        {inp:8,  cap:6,  s:1, f:3},
-//        {inp:9,  cap:8,  s:1, f:4},
-//        {inp:10, cap:8,  s:1, f:4},
-//        {inp:11, cap:8,  s:1, f:4},
-//        {inp:12, cap:8,  s:1, f:4},
-//        {inp:13, cap:10, s:1, f:5},
-//        {inp:14, cap:10, s:1, f:5},
-//        {inp:15, cap:10, s:1, f:5},
-//        {inp:16, cap:10, s:1, f:5},
-//        {inp:17, cap:8,  s:3, f:1},
-//        {inp:18, cap:8,  s:3, f:1},
-//        {inp:19, cap:8,  s:3, f:1},
-//        {inp:20, cap:8,  s:3, f:1},
-//        {inp:21, cap:8,  s:3, f:1},
-//        {inp:22, cap:8,  s:3, f:1},
-//        {inp:23, cap:8,  s:3, f:1},
-//        {inp:24, cap:8,  s:3, f:1},
-//        {inp:100, cap:32, s:2, f:8},
-//        {inp:1000, cap:136, s:3, f:17},
-//        {inp:10000, cap:320, s:5, f:10},
-//        {inp:100000, cap:896, s:7, f:7},
-//        {inp:1000000, cap:1024, s:10, f:1},
-//        {inp:10000000, cap:10240, s:10, f:10},
-//        {inp:100000000, cap:24576, s:12, f:6}
-//    ];
-//
-//    for (let e of chain) {
-//        //noinspection UnnecessaryLocalVariableJS
-//        let {inp, cap, s, f} = e;
-//        if (cap === undefined) {
-//            noinspection JSReferencingMutableVariableFromClosure
-//            assertThrows(() => FermatRing.for_convolving_values_of_size(inp));
-//        } else {
-//            let r = FermatRing.for_convolving_values_of_size(inp);
-//            assertThat(r.principal_root_exponent).withInfo(e).isEqualTo(s);
-//            assertThat(r.bit_padding_factor).withInfo(e).isEqualTo(f);
-//            assertThat(r.bit_capacity).withInfo(e).isEqualTo(cap);
-//        }
-//    }
-//});

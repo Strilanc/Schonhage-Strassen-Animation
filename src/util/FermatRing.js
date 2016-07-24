@@ -12,6 +12,12 @@ class FermatRing {
      *               Useful because it doesn't have to be a power of 2.
      */
     constructor(principal_root_of_unity_exponent, padding_factor=1) {
+        if (padding_factor < 1) {
+            throw new Error("padding_factor < 1")
+        }
+        if (principal_root_of_unity_exponent < 0) {
+            throw new Error("principal_root_of_unity_exponent < 0")
+        }
         /**
          * @type {!int}
          */
@@ -38,11 +44,14 @@ class FermatRing {
          * @type {!int}
          */
         this.bit_padding_factor = padding_factor;
-        /**
-         * We're working in the integers modulo this number.
-         * @type {!BigInt}
-         */
-        this.divisor = BigInt.ONE.shift(this.bit_capacity).plus(1);
+    }
+
+    /**
+     * We're working in the integers modulo this number.
+     * @returns {!BigInt}
+     */
+    divisor() {
+        return BigInt.ONE.shift(this.bit_capacity).plus(1);
     }
 
     /**
@@ -66,7 +75,7 @@ class FermatRing {
         }
 
         // We're a lot closer now, but maybe not quite there.
-        if (remainder.isNegative() || !remainder.minus(this.divisor).isNegative()) {
+        if (remainder.size() > this.bit_capacity || (remainder.isNegative() && !remainder.isNegativeOne())) {
             return this.canonicalize(remainder);
         }
 
