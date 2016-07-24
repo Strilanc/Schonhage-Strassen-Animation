@@ -124,6 +124,12 @@ class BigInt {
      * @complexity O(N + P*B) where N is the bit-size, P is the piece count, B is the bits per piece
      */
     splitIntoNPiecesOfSize(pieceCount, bitsPerPiece) {
+        if (pieceCount <= 0) {
+            throw new Error("pieceCount not positive");
+        }
+        if (bitsPerPiece <= 0) {
+            throw new Error("bitsPerPiece not positive");
+        }
         let pieces = [];
         let offset = 0;
         while (pieces.length < pieceCount) {

@@ -20,7 +20,7 @@ function multiply_integer_FFT(a, b) {
 
     let n = Math.max(a.size(), b.size());
     let pieceSize = ceil_lg2(n) + 1;
-    let pieceCount = Math.ceil(n/pieceSize);
+    let pieceCount = Math.max(1, Math.ceil(n/pieceSize));
     let poly = e => new Polynomial(e.splitIntoNPiecesOfSize(pieceCount, pieceSize));
 
     let polyA = poly(a);
