@@ -6,8 +6,7 @@ import multiply_integer_Karatsuba from "src/integer_multiplication/Karatsuba.js"
 import {
     multiply_SchonhageStrassen,
     ring_for_size,
-    multiply_SchonhageStrassen_ring,
-    sub_parameters_for_multiplying_values_in_ring
+    multiply_SchonhageStrassen_ring
 } from "src/integer_multiplication/SchonhageStrassen.js"
 
 let suite = new Suite("integer_multiplication.SchönhageStrassen");
