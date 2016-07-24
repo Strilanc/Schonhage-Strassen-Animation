@@ -2,7 +2,7 @@ import BigInt from "src/util/BigInt.js"
 import {repeat, splice_bit, swap_index_bit_orders, proper_mod, floor_lg2, ceil_lg2} from "src/util/util.js"
 
 /**
- * The integers modulo 2^(m 2^k) + 1, where 2^m is a 2^k'th principal root of unity.
+ * The integers modulo 2^(p 2^s) + 1, where 2^p is a 2^s'th principal root of unity.
  */
 class FermatRing {
     /**
@@ -302,37 +302,6 @@ class FermatRing {
      */
     toString() {
         return `Z mod 2^(${this.bit_padding_factor}*2^${this.principal_root_exponent}) + 1`
-    }
-
-    /**
-     * @param {!int} input_size
-     * @returns {!FermatRing} A ring that has large enough pieces and principal root order to convolve a broken up value
-     * of the receiving ring.
-     */
-    static for_convolving_values_of_size(input_size) {
-        throw new Error("NOT CORRECT YET");
-        //let best = undefined;
-        //for (let f of [1, 2, 4, 8, 16]) {
-        //    let min_s = Math.max(0, Math.floor(floor_lg2(input_size / f)/2) - 1);
-        //    let max_s = ceil_lg2(input_size / f);
-        //    for (let s = min_s; s <= max_s; s++) {
-        //        let cap = f*(1<<s);
-        //        let count = 2<<s;
-        //        let piece = Math.ceil(input_size/count);
-        //        let used = piece*2 + s + 1;
-        //        if (used <= cap && cap < input_size) {
-        //            let efficiency = used / cap;
-        //            if (best === undefined || efficiency > best.efficiency) {
-        //                best = {efficiency, f, s};
-        //                break;
-        //            }
-        //        }
-        //    }
-        //}
-        //if (best === undefined) {
-        //    throw new Error(`Failed to make progress on ${input_size}.`)
-        //}
-        //return new FermatRing(best.s, best.f);
     }
 }
 

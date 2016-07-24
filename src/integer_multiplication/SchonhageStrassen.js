@@ -67,5 +67,39 @@ function multiply_SchonhageStrassen_integer(a, b) {
     return multiply_SchonhageStrassen(a, b, ring);
 }
 
+/**
+ * @param {!int} bit_size
+ * @returns {!FermatRing}
+ */
+function ring_for_multiplying_integers_of_size(bit_size) {
+    bit_size *= 2;
+    let s = ceil_lg2(bit_size);
+    while (s >= 6) {
+        let p = (bit_size + ((1 << s) - 1)) >> s;
+        if (s <= p && p <= 2*s) {
+            return new FermatRing(s, p - 1)
+        }
+        s -= 1;
+    }
+    throw new Error("I can't even count that low.")
+}
+
+/**
+ * @param {!FermatRing} outer_ring
+ * @return {!{piece_count_exponent: !int, inner_ring: !FermatRing}}
+ */
+function parameters_for_multiplying_values_in_ring(outer_ring) {
+    let s = outer_ring.principal_root_exponent;
+    let p = outer_ring.bit_padding_factor + 1;
+    if (s < p || p < 2*s) {
+        throw Error("Bad starting ring.");
+    }
+    let s2 = Math.ceil(s/2) + 1;
+    let p2 = Math.ceil(p/2) + 1;
+    let piece_count_exponent = Math.floor(s/2) + 1;
+    let inner_ring = new FermatRing(s2, p2 - 1);
+    return {piece_count_exponent, inner_ring};
+}
+
 export {multiply_SchonhageStrassen}
 export default multiply_SchonhageStrassen;

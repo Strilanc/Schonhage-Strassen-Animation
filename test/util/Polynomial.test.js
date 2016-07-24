@@ -55,6 +55,11 @@ suite.test("of", () => {
     assertThat(Polynomial.ofCoefs(0, 0, 3, 4, 5, 0, 0, 0)).isEqualTo(new Polynomial([0, 0, 0, 5, 4, 3]));
 });
 
+suite.test("random", () => {
+    assertThat(Polynomial.random(3, 30).degree()).isEqualTo(3);
+    assertThat(Polynomial.random(10, 10)).isNotEqualTo(Polynomial.random(10, 10));
+});
+
 suite.test("splitIntoNPiecesOfSize", () => {
     assertThat(Polynomial.ofCoefs(1, 2, 3, 4, 5, 6, 7, 8).splitIntoNPiecesOfSize(2, 4)).isEqualTo([
         Polynomial.ofCoefs(5, 6, 7, 8),

@@ -10,6 +10,7 @@ import {ceil_lg2} from "src/util/util.js"
  * @param {!int | !BigInt | !Polynomial} a
  * @param {!int | !BigInt | !Polynomial} b
  * @param {Infinity|!int=Infinity} negativeDegreeExponent The k where X^(2^k) is congruent to -1, if any.
+ * @param {!function(!BigInt, !BigInt) : !BigInt=} coef_multiplier
  * @returns {!Polynomial}
  * @complexity O(N lg(N) M(C + lg(N)))
  *     C is the size of coefficients
@@ -22,11 +23,11 @@ import {ceil_lg2} from "src/util/util.js"
  *     So for N/lg(n) pieces of size lg(n) we have
  *       O(N M(lg(N)))
  */
-function multiply_polynomial_FFT(a, b, negativeDegreeExponent=Infinity) {
+function multiply_polynomial_FFT(a, b, negativeDegreeExponent=Infinity, coef_multiplier=multiply_integer_Schoolbook) {
     a = Polynomial.of(a);
     b = Polynomial.of(b);
     if (negativeDegreeExponent === Infinity) {
-        negativeDegreeExponent = ceil_lg2(Math.max(a.degree(), b.degree()) + 1) + 1
+        negativeDegreeExponent = ceil_lg2(a.degree() + b.degree() + 1);
     }
     if (Math.max(a.degree(), b.degree()) >= 1 << negativeDegreeExponent ) {
         throw new Error(`Coefficients past negative degree: (${a}) * (${b}) (mod X^(2^${negativeDegreeExponent}))+1`);
@@ -34,7 +35,7 @@ function multiply_polynomial_FFT(a, b, negativeDegreeExponent=Infinity) {
 
     // Base case.
     if (negativeDegreeExponent < 4) {
-        return multiply_polynomial_Schoolbook(a, b, multiply_integer_Schoolbook);
+        return multiply_polynomial_Schoolbook(a, b, coef_multiplier);
     }
 
     // Break into roughly sqrt(N) pieces, each with roughly sqrt(N) coefficients.
@@ -46,7 +47,7 @@ function multiply_polynomial_FFT(a, b, negativeDegreeExponent=Infinity) {
 
     // Convolve the pieces.
     let innerNegativeExponent = split + 1;
-    let innerMultiply = (p, q) => multiply_polynomial_FFT(p, q, innerNegativeExponent);
+    let innerMultiply = (p, q) => multiply_polynomial_FFT(p, q, innerNegativeExponent, coef_multiplier);
     let piecesC = Polynomial.negacyclic_convolution(piecesA, piecesB, innerNegativeExponent, innerMultiply);
 
     // Recombine.

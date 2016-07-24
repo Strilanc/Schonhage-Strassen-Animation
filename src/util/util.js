@@ -12,7 +12,7 @@ function floor_lg2(val) {
  * @returns {!int}
  */
 function ceil_lg2(val) {
-    return val <= 1 ? 0 : ceil_lg2(val>>1)+1;
+    return val <= 1 ? 0 : ceil_lg2((val+1)>>1)+1;
 }
 /**
  * @param {!int} val

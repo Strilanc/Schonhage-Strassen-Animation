@@ -1,14 +1,15 @@
 import BigInt from "src/util/BigInt.js"
 import Polynomial from "src/util/Polynomial.js"
+import multiply_integer_Schoolbook from "src/integer_multiplication/Schoolbook.js"
 
 /**
  * @param {!int | !BigInt | !Polynomial} a
  * @param {!int | !BigInt | !Polynomial} b
- * @param {!function(!BigInt, !BigInt) : !BigInt} coefficient_multiplier
+ * @param {!function(!BigInt, !BigInt) : !BigInt=} coefficient_multiplier
  * @returns {!Polynomial}
  * @complexity O(N^2)
  */
-function multiply_polynomial_Schoolbook(a, b, coefficient_multiplier) {
+function multiply_polynomial_Schoolbook(a, b, coefficient_multiplier=multiply_integer_Schoolbook) {
     a = Polynomial.of(a);
     b = Polynomial.of(b);
 

@@ -30,7 +30,21 @@ class Polynomial {
      * @returns {!int}
      */
     degree() {
-        return this._coefficients.length - 1;
+        return Math.max(0, this._coefficients.length - 1);
+    }
+
+    /**
+     * Returns a random polynomial of the given degree with coefficients sampled randomly from [0, 2^bit_count).
+     * @param {!int} degree
+     * @param {!int} coefficient_bit_count
+     * @returns {!BigInt}
+     */
+    static random(degree, coefficient_bit_count) {
+        let coefs = [];
+        while (coefs.length <= degree) {
+            coefs.push(BigInt.random(coefficient_bit_count));
+        }
+        return new Polynomial(coefs);
     }
 
     /**
