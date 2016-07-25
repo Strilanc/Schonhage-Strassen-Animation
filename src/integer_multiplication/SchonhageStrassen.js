@@ -38,7 +38,7 @@ function multiply_integer_SchonhageStrassen_ring(a, b, ring) {
     b = ring.canonicalize(b);
 
     // Base cases.
-    if (ring.bit_capacity <= 8) {
+    if ((ring.bit_capacity !== 16 && ring.bit_capacity < 32) || ring.bit_capacity === 40) {
         // The sub-multiplications wouldn't be smaller. Have to use a different strategy.
         return ring.canonicalize(multiply_integer_Karatsuba(a, b));
     }
@@ -78,12 +78,14 @@ function ring_for_size(bit_size) {
     let m = ceil_lg2(bit_size);
     let best = undefined;
     for (let s = m; s > 0; s--) {
-        for (let p = Math.max(2, s); p <= 2*s; p++) {
+        for (let p = Math.max(2, s); p <= 4*s; p++) {
             let r = new FermatRing(s, p - 1);
             let isSmaller = r.bit_capacity < bit_size;
-            //let isEven = bit_size == ((bit_size >> (s + 1)) << (s + 1));
+            let isEven = (bit_size & ((1 << (s+2)) - 1)) == 0;
             let hasRoom = r.bit_capacity >= Math.ceil(bit_size / r.principal_root_order)*2 + s + 1;
-            if (isSmaller && hasRoom && (best === undefined || best.r.bit_capacity > r.bit_capacity)) {
+            let canDoSqrt2 = s >= 3 || (s === 2 && (p & 0) === 0);
+            let isBetter = best === undefined || best.r.bit_capacity > r.bit_capacity;
+            if (isSmaller && isEven && hasRoom && canDoSqrt2 && isBetter) {
                 best = {p, s, r};
             }
         }
