@@ -364,7 +364,7 @@ suite.test("cyclic_convolution", () => {
 });
 
 suite.test("negacyclic_convolution", () => {
-    let native_multiply = (a, b) => BigInt.of(a.toJavascriptNumber()*b.toJavascriptNumber());
+    let native_multiply = (a, b) => BigInt.of(BigInt.of(a).toJavascriptNumber()*BigInt.of(b).toJavascriptNumber());
     let n1p2 = (e1, e2) => new FermatRing(1, 2).negacyclic_convolution(e1, e2, native_multiply);
     let n2p2 = (e1, e2) => new FermatRing(2, 2).negacyclic_convolution(e1, e2, native_multiply);
     let n2p4 = (e1, e2) => new FermatRing(2, 4).negacyclic_convolution(e1, e2, native_multiply);
@@ -414,6 +414,8 @@ suite.test("negacyclic_convolution", () => {
     assertThat(n2p4([1, 2, 3, 4, 5, 6, 7, 8], [2, _, _, _, _, _, _, _])).isEqualTo([2, 4, 6, 8, 10, 12, 14, 16]);
     assertThat(n2p4([1, 2, 3, 4, 5, 6, 7, 8], [_, 3, _, _, _, _, _, _])).isEqualTo([65513, 3, 6, 9, 12, 15, 18, 21]);
     assertThat(n2p4([1, 2, 3, 4, 5, 6, 7, 8], [2, 3, _, _, _, _, _, _])).isEqualTo([65515, 7, 12, 17, 22, 27, 32, 37]);
+
+    assertThat(n2p2([1, 0, 2, 0, 2, 1, 0, 0], [2, 2, 1, 1, 2, 0, 1, 0])).isEqualTo([252, 0, 3, 4, 8, 8, 9, 3]);
 });
 
 /**

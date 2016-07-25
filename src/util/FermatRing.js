@@ -152,17 +152,6 @@ class FermatRing {
     }
 
     /**
-     * Determines if the given value is congruent to negative one.
-     * @param {!int | !BigInt} value
-     * @returns {!boolean}
-     * @complexity O(N + W)
-     */
-    isCongruentToNegativeOne(value) {
-        return this.canonicalize(value).bit_capacity > this.bit_capacity;
-
-    }
-
-    /**
      * Returns a randomly sampled value of the ring.
      * @returns {!BigInt}
      */
