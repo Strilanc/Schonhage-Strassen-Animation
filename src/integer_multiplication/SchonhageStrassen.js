@@ -62,7 +62,8 @@ function multiply_integer_SchonhageStrassen_ring(a, b, ring) {
     let piecesC = inner_ring.negacyclic_convolution(piecesA, piecesB, inner_multiply);
 
     // Carry, but after detecting any negative values.
-    let piecesD = piecesC.map(e => e.size() === inner_ring.bit_capacity ? e.minus(inner_ring.divisor()) : e);
+    let d = inner_ring.divisor();
+    let piecesD = piecesC.map(e => e.size() === inner_ring.bit_capacity ? e.minus(d) : e);
     let combined = BigInt.shiftSum(piecesD, bits_per_piece);
     return ring.canonicalize(combined);
 }

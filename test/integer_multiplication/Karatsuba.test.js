@@ -9,7 +9,13 @@ let suite = new Suite("integer_multiplication.Karatsuba");
 suite.test("auto", () => {
     testAllSmallCases(multiply_integer_Karatsuba);
     testRandomCasesAgainstNative(multiply_integer_Karatsuba, 10);
-    testRandomLargeCasesAgainst(multiply_integer_Karatsuba, 100, multiply_integer_Schoolbook);
+});
+
+suite.test("sizes", () => {
+    for (let i = 10; i < 50; i++) {
+        testRandomLargeCasesAgainst(multiply_integer_Karatsuba, multiply_integer_Schoolbook, i, 1);
+    }
+    testRandomLargeCasesAgainst(multiply_integer_Karatsuba, multiply_integer_Schoolbook, 100, 1);
 });
 
 suite.test("examples", () => {

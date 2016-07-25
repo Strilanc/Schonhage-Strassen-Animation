@@ -25,6 +25,12 @@ suite.test("auto", () => {
     //testRandomLargeCasesAgainst(multiply_integer_SchonhageStrassen, multiply_integer_Karatsuba, 1000, 1);
 });
 
+suite.test("sizes", () => {
+    for (let i = 10; i < 50; i++) {
+        testRandomLargeCasesAgainst(multiply_integer_SchonhageStrassen, multiply_integer_Karatsuba, i, 1);
+    }
+});
+
 suite.test("examples", () => {
     assertThat(multiply_integer_SchonhageStrassen(12345, 67890)).isEqualTo(838102050);
     assertThat(multiply_integer_SchonhageStrassen(123456789, 987654321)).isEqualTo(BigInt.parse("121932631112635269"));
