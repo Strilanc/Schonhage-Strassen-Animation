@@ -33,6 +33,8 @@ function parseDigits(digit_string) {
 
 txtInput.focus();
 
+const CW = 60;
+const CH = 20;
 class State {
     /**
      * @param {int[][]} digit_grid
@@ -76,13 +78,89 @@ class State {
         this.drawRotate(canvas, 0, 0)
     }
 
+
     afterRotate(slope) {
         let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
         return new State(make_grid(w, h, (c, r) => {
-            let {div, mod} = divmod(r + slope*c, h);
+            let {div, mod} = divmod(r - slope*c, h);
             let f = (div & 1) === 0 ? 1 : -1;
             return this.digit_grid[c][mod] * f;
         }));
+    }
+
+    afterHadamard(bit) {
+        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
+        let m = 1 << bit;
+        return new State(make_grid(w, h, (c, r) => {
+            let c_bit = (c & m) !== 0;
+            let c_off = c & ~m;
+            let c_on = c | m;
+            let v_off = this.digit_grid[c_off][r];
+            let v_on = this.digit_grid[c_on][r];
+            return c_bit ? v_off - v_on : v_off + v_on;
+        }));
+    }
+
+    /**
+     * @param {!HTMLCanvasElement} canvas
+     * @param {!int} bit
+     * @param {!number} time
+     */
+    drawHadamard(canvas, bit, time) {
+        let ctx = /** @type {!CanvasRenderingContext2D} */ canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
+        ctx.font = '12pt monospace';
+        let m = 1 << bit;
+        let w_high = w >> (bit + 1);
+        for (let c_low = 0; c_low < m; c_low++) {
+            for (let r = 0; r < h; r++) {
+                let t0 = (c_low+r/h)/(m+2)/2;
+                let t1 = (c_low+r/h+1/h)/(m+2)/2;
+                let t2 = (c_low+m+r/h)/(m+2)/2;
+                let t3 = (c_low+m+r/h+1/h)/(m+2)/2;
+                let showConnector = (time >= t0 && time < t1) || (time >= t2 && time <= t3);
+                let showFormula = time >= t1 && time < t3;
+                let showResult = time >= t3;
+
+                for (let c_high = 0; c_high < w_high; c_high++) {
+
+                    let c_off = c_low | (c_high << (bit + 1));
+                    let c_on = c_off + m;
+
+                    if (showConnector) {
+                        ctx.beginPath();
+                        let x1 = (c_off + 0.9)*CW;
+                        let x2 = (c_on + 0.9)*CW;
+                        let y1 = r*CH;
+                        let y2 = r*CH + (m-c_low)*3 + 30;
+                        ctx.moveTo(x1, y1);
+                        ctx.bezierCurveTo(x1, y1, x2, y2, x2, y1);
+                        ctx.strokeStyle = `#AAA`;
+                        ctx.stroke();
+                    }
+
+                    for (let c_bit = 0; c_bit < 2; c_bit++) {
+                        let c = c_off + c_bit*m;
+                        let x = c*CW;
+                        let y = r*CH;
+                        let v_off = this.digit_grid[c_off][r];
+                        let v_on = this.digit_grid[c_on][r];
+                        let v_in = this.digit_grid[c][r];
+                        let v_out = c_bit ? v_off - v_on : v_off + v_on;
+                        let v = showFormula || showResult ? v_out : v_in;
+                        let s = (!showFormula ? v+""
+                            : c_bit ? v_off + "-" + v_on
+                            : v_off + "+" + v_on).split("+-").join('-').split("--").join('+');
+                        ctx.fillStyle = v === 0 ? 'rgba(0, 0, 0, 0.4)'
+                            : v < 0 ? '#F00'
+                            : '#000';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(s, x + CW, y + CH * 0.8);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -94,32 +172,35 @@ class State {
         let ctx = /** @type {!CanvasRenderingContext2D} */ canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
-        let d = 20;
         ctx.font = '12pt monospace';
         for (let c = 0; c < w; c++) {
             for (let r = 0; r < h; r++) {
                 let v = this.digit_grid[c][r];
-                let {div, mod: y} = divmod(r*d + slope*c*time*d, h*d);
+                let slope_slow = divmod(slope*c, h).mod;
+                let {div, mod: y} = divmod(r*CH + slope_slow*time*CH, h*CH);
                 v *= (div & 1) === 0 ? 1 : -1;
                 ctx.fillStyle = v === 0 ? '#BBB'
                     : v < 0 ? '#F00'
                     : '#000';
-                ctx.fillText(v, c * d, y + d*0.8);
-                if (y > h*d-d) {
+                ctx.textAlign = 'right';
+                ctx.fillText(v, c * CW + CW, y + CH*0.8);
+                if (y > h*CH-CH) {
                     ctx.fillStyle = v === 0 ? '#BBB'
                         : -v < 0 ? '#F00'
                         : '#000';
-                    ctx.fillText(""+-v, c*d, y + d*0.8 - h*d);
+                    ctx.fillText(""+-v, c*CW + CW, y + CH*0.8 - h*CH);
                 }
                 if (r === 0) {
                     ctx.fillStyle = 'black';
-                    ctx.fillRect(c*d, y, d, 1);
+                    ctx.fillRect(c*CW+4, y, CW, 1);
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(c*CW+4, divmod(r*CH + slope*c*CH, h*CH).mod, CW/2, 1);
                 }
             }
         }
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, -d, w*d, d);
-        ctx.fillRect(0, h*d, w*d, d);
+        ctx.fillRect(0, -CH, w*CW, CH);
+        ctx.fillRect(0, h*CH, w*CW, CH);
     }
 }
 
@@ -127,13 +208,31 @@ txtInput.value = '12345678987654321234567898765432123456789876543212345678987654
 redraw();
 
 setInterval(() => {
+    let h_step = i => ({
+        draw: (s, t) => s.drawHadamard(canvas, i, t),
+        after: s => s.afterHadamard(i)
+    });
+    let r_step = i => ({
+        draw: (s, t) => s.drawRotate(canvas, i, t),
+        after: s => s.afterRotate(i)
+    });
+    let steps = [
+        h_step(3),
+        r_step(4),
+        h_step(2),
+        r_step(2),
+        h_step(1),
+        r_step(1),
+        h_step(0)
+    ];
     try {
         let state = State.fromInput(txtInput.value);
-        let t = (window.performance.now() / 1000) % 2;
-        if (t > 1) {
-            t = 2 - t;
+        let t = (window.performance.now() / 3000) % steps.length;
+        let i;
+        for (i = 0; t - i >= 1; i++) {
+            state = steps[i].after(state);
         }
-        state.drawRotate(canvas, 2, t);
+        steps[i].draw(state, t - i);
     } catch (ex) {
         divStep1.innerText = "ERROR: " + ex;
         throw ex;
@@ -149,6 +248,14 @@ function divmod(a, b) {
     let div = Math.floor(a / b);
     let mod = a - b*div;
     return {div, mod}
+}
+
+function lerp_within(v0, v1, t0, t1, t) {
+    let p = (t-t0)/(t1-t0);
+    if (p < 0 || p > 1) {
+        return undefined;
+    }
+    return v0 + (v1-v0)*p;
 }
 
 /**
