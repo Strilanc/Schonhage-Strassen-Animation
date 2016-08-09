@@ -163,6 +163,71 @@ class State {
         }
     }
 
+    afterCarry() {
+        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
+        let g = make_grid(w, h, (c, r) => this.digit_grid[c][r]);
+        for (let c = 0; c < w; c++) {
+            let carry = 0;
+            for (let r = 0; r < 2 * h; r++) {
+                if (r === h) {
+                    carry = -carry;
+                }
+                let v = g[c][r % h] + carry;
+                let v2 = v % 10;
+                g[c][r % h] = v2;
+                carry = (v2 - v) / 10;
+            }
+        }
+        return new State(g);
+    }
+
+    drawCarry(canvas, time) {
+        let ctx = /** @type {!CanvasRenderingContext2D} */ canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
+        ctx.font = '12pt monospace';
+
+        let max_r = Math.floor(time*(h*2+1));
+        let g = make_grid(w, h, (c, r) => this.digit_grid[c][r]);
+        for (let c = 0; c < w; c++) {
+            let carry = 0;
+            for (let r = 0; r < max_r; r++) {
+                if (r === h) {
+                    carry = -carry;
+                }
+                let v = g[c][r % h] + carry;
+                let v2 = v % 10;
+                g[c][r % h] = v2;
+                carry = (v - v2) / 10;
+            }
+            for (let r = 0; r < h; r++) {
+                let v = g[c][r];
+
+                ctx.fillStyle = v === 0 ? 'rgba(0, 0, 0, 0.4)'
+                    : v < 0 ? '#F00'
+                    : '#000';
+                ctx.textAlign = 'right';
+                ctx.fillText(v, c*CW + CW, r*CH + CH * 0.8);
+
+                if (r === max_r || r + h === max_r) {
+                    ctx.fillStyle = carry === 0 ? 'rgba(0, 0, 0, 0.4)'
+                        : carry < 0 ? '#F00'
+                        : '#000';
+                    ctx.textAlign = 'left';
+                    ctx.fillText((carry >= 0 ? '+' : '') + carry, c * CW + CW, r * CH + CH * 0.8);
+
+                    if (Math.abs(v) >= 10) {
+                        ctx.beginPath();
+                        ctx.moveTo(c*CW+CW-16, r*CH);
+                        ctx.lineTo(c*CW+CW-8, r*CH+CH);
+                        ctx.strokeStyle = v < 0 ? 'black' : 'red';
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * @param {!HTMLCanvasElement} canvas
      * @param {!int} slope
@@ -216,14 +281,22 @@ setInterval(() => {
         draw: (s, t) => s.drawRotate(canvas, i, t),
         after: s => s.afterRotate(i)
     });
+    let c_step = {
+        draw: (s, t) => s.drawCarry(canvas, t),
+        after: s => s.afterCarry()
+    };
     let steps = [
         h_step(3),
+        c_step,
         r_step(4),
         h_step(2),
+        c_step,
         r_step(2),
         h_step(1),
+        c_step,
         r_step(1),
-        h_step(0)
+        h_step(0),
+        c_step
     ];
     try {
         let state = State.fromInput(txtInput.value);
