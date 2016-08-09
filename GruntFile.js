@@ -62,7 +62,7 @@ module.exports = function(grunt) {
                     'out/tmp/traceur/src/**/*.js',
                     'out/tmp/traceur/bootstrap_post_src/**/*.js'
                 ],
-                dest: 'out/tmp/concatenated-src.js'
+                dest: 'out/index.js'
             },
             'concat-traceur-test': {
                 options: {
@@ -76,6 +76,12 @@ module.exports = function(grunt) {
                     'out/tmp/traceur/bootstrap_post_test/**/*.js'
                 ],
                 dest: 'out/test.js'
+            }
+        },
+        copy: {
+            main: {
+                src: 'src/index.html',
+                dest: 'out/index.html'
             }
         },
         clean: {
@@ -105,6 +111,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-traceur');
 
     grunt.registerTask('build-src', [
+        'copy',
         'clean:clean-tmp',
         'traceur:translate-src',
         'bootstrap-get-packages:src/main.js:out/tmp/traceur/bootstrap_post_src/run_main.js',
