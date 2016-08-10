@@ -101,7 +101,7 @@ class State {
         let w_high = w >> (bit + 1);
         for (let c_low = 0; c_low < m; c_low++) {
             for (let r = 0; r < h; r++) {
-                let d = h*(m+1)*2;
+                let d = (h+1)*m*2;
                 let t0 = (c_low*h + r) / d;
                 let t1 = (c_low*h + r+1) / d;
                 let t2 = (c_low*h + m*h + r) / d;
@@ -208,7 +208,8 @@ class State {
                         : carry < 0 ? '#F00'
                         : '#000';
                     ctx.textAlign = 'right';
-                    ctx.fillText((carry >= 0 ? '+' : '') + carry, c * CW - ctx.measureText(s).width, r * CH + CH * 0.8);
+                    let cx = c * CW + CW - ctx.measureText(s).width;
+                    ctx.fillText((carry >= 0 ? '+' : '') + carry, cx, r * CH + CH * 0.8);
 
                     if (Math.abs(v) >= 10) {
                         ctx.beginPath();
@@ -240,26 +241,26 @@ class State {
                 let slope_slow = divmod(slope, h*2).mod;
                 let {div, mod: y} = divmod(r*CH + slope_slow*progress*CH, h*CH);
                 v *= (div & 1) === 0 ? 1 : -1;
-                ctx.fillStyle = v === 0 ? '#BBB'
+                ctx.fillStyle = v === 0 ? 'rgba(0, 0, 0, 0.4)'
                     : v < 0 ? '#F00'
                     : '#000';
                 ctx.textAlign = 'right';
                 ctx.fillText(v, c * CW + CW, y + CH*0.8);
                 if (y > h*CH-CH) {
-                    ctx.fillStyle = v === 0 ? '#BBB'
-                        : -v < 0 ? '#F00'
+                    ctx.fillStyle = v === 0 ? 'rgba(0, 0, 0, 0.4)'
+                        : v < 0 ? '#F00'
                         : '#000';
                     ctx.fillText(""+-v, c*CW + CW, y + CH*0.8 - h*CH);
                 }
-                if (r === 0) {
+                if (r === 0 && slope !== 0) {
                     ctx.fillStyle = 'red';
                     let sy = divmod(r*CH + slope*CH, h*CH*2).mod;
                     if (sy === h*CH) {
                         sy -= 1;
                     }
-                    ctx.fillRect((c+0.5)*CW, sy % (h*CH), CW/2, 1);
+                    ctx.fillRect(c*CW+6, sy % (h*CH), CW, 1);
                     ctx.fillStyle = 'black';
-                    ctx.fillRect((c+0.5)*CW, y, CW/2, 1);
+                    ctx.fillRect(c*CW+6, y, CW, 1);
                 }
             }
         }
@@ -320,7 +321,10 @@ class Step {
         return new Step(
             input => ({
                 output: after(input),
-                drawer: (ctx, progress) => draw(ctx, input, progress)
+                drawer: (ctx, progress) => {
+                    draw_separators(ctx, input);
+                    draw(ctx, input, progress);
+                }
             }),
             (ctx, x, y, w, h) => Step._draw_bar(ctx, label, color, x, y, w, h),
             duration);
@@ -382,7 +386,7 @@ class Step {
             s => s.afterRotate(i),
             'R' + subscript_digit(i),
             '#AFA',
-            0.5);
+            0.8);
     }
 
     static carry() {
@@ -407,21 +411,20 @@ class Step {
             steps.push(Step.divide(i));
         }
         return Step.combo(
-            'Shatter',
+            'Fourier-esque Transform',
             '#FAF',
             steps);
     }
 }
 
 function draw_separators(ctx, state) {
-    ctx.save();
     for (let k = 0; k < state.digit_grid.length; k += state.focus_width) {
         ctx.fillStyle = `rgba(0, 0, 0, ${k/state.digit_grid.length/4})`;
         ctx.fillRect(k*CW+6, 0, state.focus_width*CW, state.digit_grid[0].length*CH);
         ctx.strokeStyle = 'black';
+        ctx.save();
         if (k > 0) {
             ctx.lineWidth = 1;
-            ctx.setLineDash([4, 2]);
             ctx.beginPath();
             ctx.moveTo(k * CW + 6, 0);
             ctx.lineTo(k * CW + 6, state.digit_grid[0].length * CH);
@@ -435,8 +438,8 @@ function draw_separators(ctx, state) {
             ctx.lineTo((k + state.focus_width / 2) * CW + 6, state.digit_grid[0].length * CH);
             ctx.stroke();
         }
+        ctx.restore();
     }
-    ctx.restore();
 }
 
 class AlgorithmDemo {
@@ -450,7 +453,6 @@ class AlgorithmDemo {
     draw(ctx, progress) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         this.processed.drawer(ctx, progress);
-        draw_separators(ctx, this.state);
         let y = 300;
         let step_width = 400;
         this.step.drawBar(ctx, 0, y, step_width, 20);
