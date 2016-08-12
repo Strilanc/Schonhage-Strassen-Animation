@@ -2,6 +2,8 @@ let txtInput = /** @type {!HTMLTextAreaElement} */ document.getElementById('txt-
 let divStep1 = /** @type {!HTMLDivElement} */ document.getElementById('div-step1');
 let canvas = /** @type {!HTMLCanvasElement} */ document.getElementById('canvas-state');
 
+const DURATION_PER_STEP = 1000; // millis
+
 function parseDigits(digit_string) {
     if (digit_string.startsWith("-")) {
         digit_string = digit_string.substr(1); // We're squaring. Negative doesn't matter.
@@ -22,7 +24,90 @@ txtInput.focus();
 const CW = 35;
 const CH = 14;
 
-class State {
+class NodeState {
+    /**
+     * @param {NodeState[]|LeafState} content
+     */
+    constructor(content) {
+        this.content = content;
+    }
+
+    _recurse(key, ...args) {
+        if (this.content instanceof LeafState) {
+            let r = this.content[key](...args);
+            return r instanceof NodeState ? r : new NodeState(r);
+        }
+        return new NodeState(this.content.map(e => e[key](...args)));
+    }
+
+    /**
+     * @param {string} key
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {*} args
+     * @private
+     */
+    _recurseDraw(key, ctx, ...args) {
+        if (this.content instanceof LeafState) {
+            this.content[key](ctx, ...args);
+            return;
+        }
+
+        let n = Math.round(Math.sqrt(this.content.length));
+        let {w, h} = this.content[0].drawSize();
+        for (let i = 0; i < this.content.length; i++) {
+            let r = divmod(i, n);
+            ctx.save();
+            ctx.translate(r.div*w*1.1, r.mod*h*1.1);
+            this.content[i][key](ctx, ...args);
+            ctx.restore();
+        }
+    }
+
+    drawSize() {
+        let e = this.content instanceof LeafState ? this.content : this.content[0];
+        let n = this.content instanceof LeafState ? 1 : Math.round(Math.sqrt(this.content.length));
+        let {w, h} = e.drawSize();
+        return {w: w*n*1.1, h: h*n*1.1};
+    }
+
+    afterSplit(...args) {
+        return this._recurse('afterSplit', ...args);
+    }
+
+    drawSplit(ctx, ...args) {
+        return this._recurseDraw('drawSplit', ctx, ...args);
+    }
+
+    afterHadamard(...args) {
+        return this._recurse('afterHadamard', ...args);
+    }
+
+    drawSeparators(ctx, ...args) {
+        return this._recurseDraw('drawSeparators', ctx, ...args);
+    }
+
+    afterRotate(...args) {
+        return this._recurse('afterRotate', ...args);
+    }
+
+    afterCarry(...args) {
+        return this._recurse('afterCarry', ...args);
+    }
+
+    drawRotate(ctx, ...args) {
+        return this._recurseDraw('drawRotate', ctx, ...args);
+    }
+
+    drawHadamard(ctx, ...args) {
+        return this._recurseDraw('drawHadamard', ctx, ...args);
+    }
+
+    drawCarry(ctx, ...args) {
+        return this._recurseDraw('drawCarry', ctx, ...args);
+    }
+}
+
+class LeafState {
     /**
      * @param {int[][]} digit_grid
      * @param {int} focus_width
@@ -34,7 +119,7 @@ class State {
 
     /**
      * @param {!String} digit_string
-     * @returns {!State}
+     * @returns {!LeafState}
      */
     static fromInput(digit_string) {
         // Ignore all white space.
@@ -62,13 +147,17 @@ class State {
             return k < digits.length && c*2 < padded_width ? digits[k] : 0;
         });
 
-        return new State(digit_grid, digit_grid.length);
+        return new LeafState(digit_grid, digit_grid.length);
     }
 
+    drawSize() {
+        return {w: this.digit_grid.length*CW+6, h: this.digit_grid[0].length*CH};
+    }
+    
     afterRotate(bit) {
         let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
         let m = 1 << bit;
-        return new State(make_grid(w, h, (c, r) => {
+        return new LeafState(make_grid(w, h, (c, r) => {
             let slope = (c & m) === 0 ? 0 : (c & ~(m-1));
             let {div, mod} = divmod(r - slope, h);
             let f = (div & 1) === 0 ? 1 : -1;
@@ -79,7 +168,7 @@ class State {
     afterHadamard(bit) {
         let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
         let m = 1 << bit;
-        return new State(make_grid(w, h, (c, r) => {
+        return new LeafState(make_grid(w, h, (c, r) => {
             let c_bit = (c & m) !== 0;
             let c_off = c & ~m;
             let c_on = c | m;
@@ -89,12 +178,39 @@ class State {
         }), this.focus_width/2);
     }
 
+    afterSplit() {
+        let children = [];
+        for (let col of this.digit_grid) {
+            let n = Math.round(Math.sqrt(col.length));
+            let subcols = [];
+            for (let i = 0; i < n; i++) {
+                subcols.push([...col.slice(i*n, i*n + n), ...new Array(n).fill(0)]);
+            }
+            children.push(new LeafState(subcols, subcols.length));
+        }
+        return new NodeState(children);
+    }
+
+    /**
+     * @param {!CanvasRenderingContext2D} ctx
+     * @param {!number} progress
+     */
+    drawSplit(ctx, progress) {
+        if (progress < 0.5) {
+            this.drawCarry(ctx, 0);
+        } else {
+            this.afterSplit().drawCarry(ctx, 0);
+        }
+    }
+
     /**
      * @param {!CanvasRenderingContext2D} ctx
      * @param {!int} bit
      * @param {!number} progress
      */
     drawHadamard(ctx, bit, progress) {
+        this.drawSeparators(ctx);
+
         let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
         ctx.font = '12px monospace';
         let m = 1 << bit;
@@ -119,8 +235,8 @@ class State {
                         ctx.beginPath();
                         let x1 = (c_off + 0.9)*CW;
                         let x2 = (c_on + 0.9)*CW;
-                        let y1 = r*CH;
-                        let y2 = r*CH + (m-c_low)*3 + 30;
+                        let y1 = (r+0.5)*CH;
+                        let y2 = (r+0.5)*CH + (m-c_low)*3 + 30;
                         ctx.moveTo(x1, y1);
                         ctx.bezierCurveTo(x1, y1, x2, y2, x2, y1);
                         ctx.strokeStyle = `#008`;
@@ -135,15 +251,29 @@ class State {
                         let v_on = this.digit_grid[c_on][r];
                         let v_in = this.digit_grid[c][r];
                         let v_out = c_bit ? v_off - v_on : v_off + v_on;
-                        let v = showFormula || showResult ? v_out : v_in;
-                        let s = (!showFormula ? v+""
-                            : c_bit ? v_off + "-" + v_on
-                            : v_off + "+" + v_on).split("+-").join('-').split("--").join('+');
-                        ctx.fillStyle = v === 0 ? 'rgba(0, 0, 0, 0.4)'
-                            : v < 0 ? '#F00'
-                            : '#000';
-                        ctx.textAlign = 'right';
-                        ctx.fillText(s, x + CW, y + CH * 0.8);
+                        if (showFormula) {
+                            ctx.textAlign = 'right';
+                            let cx = x + CW;
+                            let s1 = Math.abs(v_on) + '';
+                            let s2 = (c_bit != (v_on < 0)) ? '-' : '+';
+                            let s3 = v_off + '';
+                            ctx.fillStyle = sign_highlight(v_on);
+                            ctx.fillText(s1, cx, y + CH * 0.8);
+                            cx -= ctx.measureText(s1).width;
+                            ctx.fillStyle = sign_highlight(c_bit ? -1 : +1);
+                            ctx.fillText(s2, cx, y + CH * 0.8);
+                            cx -= ctx.measureText(s2).width;
+                            ctx.fillStyle = sign_highlight(v_off);
+                            ctx.fillText(s3, cx, y + CH * 0.8);
+                        } else {
+                            let v = showResult ? v_out : v_in;
+                            let s = (!showFormula ? v+""
+                                : c_bit ? v_off + "-" + v_on
+                                : v_off + "+" + v_on).split("+-").join('-').split("--").join('+');
+                            ctx.fillStyle = sign_highlight(v);
+                            ctx.textAlign = 'right';
+                            ctx.fillText(s, x + CW, y + CH * 0.8);
+                        }
                     }
                 }
             }
@@ -169,10 +299,11 @@ class State {
                 carry = (v - v2) / 10;
             }
         }
-        return new State(g, this.focus_width);
+        return new LeafState(g, this.focus_width);
     }
 
     drawCarry(ctx, progress, allowNegative=true) {
+        this.drawSeparators(ctx);
         let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
         ctx.font = '12px monospace';
 
@@ -196,17 +327,13 @@ class State {
             for (let r = 0; r < h; r++) {
                 let v = g[c][r];
 
-                ctx.fillStyle = v === 0 ? 'rgba(0, 0, 0, 0.4)'
-                    : v < 0 ? '#F00'
-                    : '#000';
+                ctx.fillStyle = sign_highlight(v);
                 ctx.textAlign = 'right';
 
                 if (r === max_r || r + h === max_r) {
                     let s = (v>=0?'+':'') + v;
                     ctx.fillText(s, c*CW + CW, r*CH + CH * 0.8);
-                    ctx.fillStyle = carry === 0 ? 'rgba(0, 0, 0, 0.4)'
-                        : carry < 0 ? '#F00'
-                        : '#000';
+                    ctx.fillStyle = sign_highlight(carry);
                     ctx.textAlign = 'right';
                     let cx = c * CW + CW - ctx.measureText(s).width;
                     ctx.fillText((carry >= 0 ? '+' : '') + carry, cx, r * CH + CH * 0.8);
@@ -231,6 +358,7 @@ class State {
      * @param {!number} progress
      */
     drawRotate(ctx, bit, progress) {
+        this.drawSeparators(ctx);
         let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
         ctx.font = '12px monospace';
         let m = 1 << bit;
@@ -241,15 +369,11 @@ class State {
                 let slope_slow = divmod(slope, h*2).mod;
                 let {div, mod: y} = divmod(r*CH + slope_slow*progress*CH, h*CH);
                 v *= (div & 1) === 0 ? 1 : -1;
-                ctx.fillStyle = v === 0 ? 'rgba(0, 0, 0, 0.4)'
-                    : v < 0 ? '#F00'
-                    : '#000';
+                ctx.fillStyle = sign_highlight(v);
                 ctx.textAlign = 'right';
                 ctx.fillText(v, c * CW + CW, y + CH*0.8);
                 if (y > h*CH-CH) {
-                    ctx.fillStyle = v === 0 ? 'rgba(0, 0, 0, 0.4)'
-                        : v < 0 ? '#F00'
-                        : '#000';
+                    ctx.fillStyle = sign_highlight(v);
                     ctx.fillText(""+-v, c*CW + CW, y + CH*0.8 - h*CH);
                 }
                 if (r === 0 && slope !== 0) {
@@ -268,13 +392,42 @@ class State {
         ctx.fillRect(0, -CH, w*CW, CH);
         ctx.fillRect(0, h*CH, w*CW, CH);
     }
+
+    drawSeparators(ctx) {
+        for (let k = 0; k < this.digit_grid.length; k += this.focus_width) {
+            ctx.fillStyle = `rgba(0, 0, 0, ${k/this.digit_grid.length/4})`;
+            ctx.fillRect(k*CW+6, 0, this.focus_width*CW, this.digit_grid[0].length*CH);
+            ctx.strokeStyle = 'black';
+            ctx.save();
+            if (k > 0) {
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(k * CW + 6, 0);
+                ctx.lineTo(k * CW + 6, this.digit_grid[0].length * CH);
+                ctx.stroke();
+            }
+            if (this.focus_width > 1) {
+                ctx.beginPath();
+                ctx.setLineDash([4, 2]);
+                ctx.strokeStyle = '#AAA';
+                ctx.moveTo((k + this.focus_width / 2) * CW + 6, 0);
+                ctx.lineTo((k + this.focus_width / 2) * CW + 6, this.digit_grid[0].length * CH);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        let {w, h} = this.drawSize();
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(0, 0, w, h);
+    }
 }
 
 class Step {
     constructor(process, drawBar, duration) {
         /**
-         * @param {State} input
-         * @returns {{output: State, drawer: function(ctx: CanvasRenderingContext2D, progress: number)}}
+         * @param {NodeState} input
+         * @returns {{output: NodeState, drawer: function(ctx: CanvasRenderingContext2D, progress: number)}}
          */
         this.process = process;
         /**
@@ -310,8 +463,8 @@ class Step {
     }
 
     /**
-     * @param {function(ctx: CanvasRenderingContext2D, state: State, progress: number)} draw
-     * @param {function(State): State} after
+     * @param {function(ctx: CanvasRenderingContext2D, state: NodeState, progress: number)} draw
+     * @param {function(NodeState): NodeState} after
      * @param {string} label
      * @param {string} color
      * @param {number} duration
@@ -321,10 +474,7 @@ class Step {
         return new Step(
             input => ({
                 output: after(input),
-                drawer: (ctx, progress) => {
-                    draw_separators(ctx, input);
-                    draw(ctx, input, progress);
-                }
+                drawer: (ctx, progress) => draw(ctx, input, progress)
             }),
             (ctx, x, y, w, h) => Step._draw_bar(ctx, label, color, x, y, w, h),
             duration);
@@ -389,6 +539,15 @@ class Step {
             0.8);
     }
 
+    static split(i) {
+        return Step.atom(
+            (ctx, s, t) => s.drawSplit(ctx, t),
+            s => s.afterSplit(i),
+            'split',
+            '#FFA',
+            2);
+    }
+
     static carry() {
         return Step.atom(
             (ctx, s, t) => s.drawCarry(ctx, t, false),
@@ -400,7 +559,7 @@ class Step {
 
     static divide(bit) {
         return Step.combo(
-            'Divide ' + bit,
+            'Div' + subscript_digit(bit),
             '#FFA',
             [Step.rotation(bit), Step.hadamard(bit), Step.carry()]);
     }
@@ -411,42 +570,36 @@ class Step {
             steps.push(Step.divide(i));
         }
         return Step.combo(
-            'Fourier-esque Transform',
+            'Fourier',
             '#FAF',
             steps);
     }
 }
 
-function draw_separators(ctx, state) {
-    for (let k = 0; k < state.digit_grid.length; k += state.focus_width) {
-        ctx.fillStyle = `rgba(0, 0, 0, ${k/state.digit_grid.length/4})`;
-        ctx.fillRect(k*CW+6, 0, state.focus_width*CW, state.digit_grid[0].length*CH);
-        ctx.strokeStyle = 'black';
-        ctx.save();
-        if (k > 0) {
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(k * CW + 6, 0);
-            ctx.lineTo(k * CW + 6, state.digit_grid[0].length * CH);
-            ctx.stroke();
-        }
-        if (state.focus_width > 1) {
-            ctx.beginPath();
-            ctx.setLineDash([4, 2]);
-            ctx.strokeStyle = '#AAA';
-            ctx.moveTo((k + state.focus_width / 2) * CW + 6, 0);
-            ctx.lineTo((k + state.focus_width / 2) * CW + 6, state.digit_grid[0].length * CH);
-            ctx.stroke();
-        }
-        ctx.restore();
-    }
-}
-
 class AlgorithmDemo {
     constructor(digit_string) {
-        this.state = State.fromInput(digit_string);
-        let f = Math.round(Math.log2(this.state.digit_grid.length));
-        this.step = Step.divide_many(f);
+        this.state = new NodeState(LeafState.fromInput(digit_string));
+        let f = Math.round(Math.log2(this.state.content.digit_grid.length));
+        this.step = Step.combo(
+            'square',
+            '#FFF',
+            [
+                Step.divide_many(f),
+                Step.split(),
+                Step.combo('recurse', '#FFF', [
+                    Step.divide_many(f>>1),
+                    Step.split(),
+                    Step.combo('recurse', '#FFF', [
+                    Step.atom(
+                        (ctx, s, t) => s.drawRotate(ctx, 0),
+                        e => e,
+                        'base',
+                        '#FFF',
+                        3)
+                    ])
+                ])
+            ]
+        );
         this.processed = this.step.process(this.state);
     }
 
@@ -484,6 +637,11 @@ function subscript_digit(i) {
     return "\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089"[i];
 }
 
+function sign_highlight(v) {
+    return v === 0 ? 'rgba(0, 0, 0, 0.4)'
+        : v < 0 ? '#F00'
+        : '#000';
+}
 /**
  * @param {int} width
  * @param {int} height
@@ -503,24 +661,26 @@ function make_grid(width, height, value_func) {
     return grid;
 }
 
-txtInput.value = '1234567898765432123456789876543212345678987654321234567898765432';
-let shownAlgorithm = new AlgorithmDemo(txtInput.value);
-txtInput.addEventListener('keyup', function() {
-    try {
-        shownAlgorithm = new AlgorithmDemo(txtInput.value);
-    } catch (ex) {
-        divStep1.innerText = "ERROR: " + ex;
-        throw ex;
-    }
-});
+setTimeout(() => {
+    txtInput.value = '1234567898765432123456789876543212345678987654321234567898765432';
+    let shownAlgorithm = new AlgorithmDemo(txtInput.value);
+    txtInput.addEventListener('keyup', function () {
+        try {
+            shownAlgorithm = new AlgorithmDemo(txtInput.value);
+        } catch (ex) {
+            divStep1.innerText = "ERROR: " + ex;
+            throw ex;
+        }
+    });
 
-setInterval(() => {
-    try {
-        let t = (window.performance.now() / 3000 / shownAlgorithm.step.duration) % 1;
-        let ctx = canvas.getContext("2d");
-        shownAlgorithm.draw(ctx, t);
-    } catch (ex) {
-        divStep1.innerText = "ERROR: " + ex;
-        throw ex;
-    }
-}, 50);
+    setInterval(() => {
+        try {
+            let t = (window.performance.now() / DURATION_PER_STEP / shownAlgorithm.step.duration) % 1;
+            let ctx = canvas.getContext("2d");
+            shownAlgorithm.draw(ctx, t);
+        } catch (ex) {
+            divStep1.innerText = "ERROR: " + ex;
+            throw ex;
+        }
+    }, 50);
+}, 0);
