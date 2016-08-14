@@ -46,6 +46,18 @@ function ceil_lg2(val) {
     }
     return s;
 }
+
+/**
+ * @param {number} a
+ * @param {number} b
+ * @returns {{div: number, mod: number}}
+ */
+function divmod(a, b) {
+    let div = Math.floor(a / b);
+    let mod = a - b*div;
+    return {div, mod}
+}
+
 /**
  * @param {!int} val
  * @param {!int} bit_count
@@ -126,4 +138,34 @@ function proper_mod(a, b) {
     return ((a%b)+b)%b;
 }
 
-export {repeat, splice_bit, reversed_list, swap_index_bit_orders, floor_lg2, ceil_lg2, exact_lg2, proper_mod}
+/**
+ * @param {int} width
+ * @param {int} height
+ * @param {function(x: int, y: int) : T} value_func
+ * @returns {Array.<T>}
+ * @template T
+ */
+function make_grid(width, height, value_func) {
+    let grid = [];
+    for (let c = 0; c < width; c++) {
+        let col = [];
+        for (let r = 0; r < height; r++) {
+            col.push(value_func(c, r));
+        }
+        grid.push(col);
+    }
+    return grid;
+}
+
+export {
+    make_grid,
+    repeat,
+    splice_bit,
+    reversed_list,
+    swap_index_bit_orders,
+    floor_lg2,
+    ceil_lg2,
+    exact_lg2,
+    proper_mod,
+    divmod
+}
