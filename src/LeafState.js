@@ -115,31 +115,23 @@ export default class LeafState {
                     let y1 = r*COL_H + COL_H*0.8;
                     let y2 = r*COL_H + COL_H*0.8 + (c%h2)*(h2*COL_H+COL_H);
                     let y3 = r2*COL_H + COL_H*0.8 + (c%h2)*(h2*2*COL_H+COL_H);
-                    let x = lerp_within(x1, x2, t0, t1, progress) ||
-                            lerp_within(x2, x3, t1, t2, progress) ||
-                            x3;
-                    let y = lerp_within(y1, y2, t0, t1, progress) ||
-                            lerp_within(y2, y3, t1, t2, progress) ||
-                            y3;
+                    let x = tween(
+                        progress,
+                        {v:x1, t:t0},
+                        {v:x2, t:t1},
+                        {v:x3, t:t2});
+                    let y = tween(
+                        progress,
+                        {v:y1, t:t0},
+                        {v:y2, t:t1},
+                        {v:y3, t:t2});
 
                     if (r === 0 && progress < t1) {
                         ctx.strokeRect(x-COL_W+6, y-COL_H, COL_W, COL_H*h+2);
                     }
                     if (r2 === 0) {
-                        let s = 0;
-                        if (progress > t1 && progress < t2) {
-                            s = (progress-t1)/(t2-t1);
-                        }
-                        if (progress >= t2) {
-                            s = 1;
-                        }
-                        let s2 = 1;
-                        if (progress >= t2 && progress <= t3) {
-                            s2 = 1-(progress-t2)/(t3-t2);
-                        }
-                        if (progress >= t3) {
-                            s2 = 0;
-                        }
+                        let s = tween(progress, {v:0,t:t1}, {v:1,t:t2});
+                        let s2 = tween(progress, {v:1,t:t2}, {v:0,t:t3});
                         this.drawSeparatorSection(ctx, c*(1-s), x-COL_W+6, y-COL_H, COL_W, COL_H*h2*(1+s));
                         ctx.strokeStyle = `rgba(0,0,0,${Math.min(1, progress/t1)*s2})`;
                         ctx.strokeRect(x-COL_W+6, y-COL_H, COL_W, COL_H*h2*(1+s)+2*(1-s));
@@ -411,4 +403,23 @@ function lerp_within(v0, v1, t0, t1, t) {
         return undefined;
     }
     return v0 + (v1-v0)*p;
+}
+
+/**
+ * @param {{t: number, v: number}} waypoints
+ * @param t
+ */
+function tween(t, ...waypoints) {
+    if (t < waypoints[0].t) {
+        return waypoints[0].v;
+    }
+    for (let i = 0; i < waypoints.length - 1; i++) {
+        let p = waypoints[i];
+        let n = waypoints[i+1];
+        if (n.t < t) {
+            continue;
+        }
+        return p.v + (t-p.t)*(n.v - p.v)/(n.t - p.t);
+    }
+    return waypoints[waypoints.length - 1].v;
 }
