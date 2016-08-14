@@ -3,6 +3,8 @@ let divStep1 = /** @type {!HTMLDivElement} */ document.getElementById('div-step1
 let canvas = /** @type {!HTMLCanvasElement} */ document.getElementById('canvas-state');
 
 const DURATION_PER_STEP = 1000; // millis
+const CW = 35;
+const CH = 12;
 
 function parseDigits(digit_string) {
     if (digit_string.startsWith("-")) {
@@ -20,9 +22,6 @@ function parseDigits(digit_string) {
 }
 
 txtInput.focus();
-
-const CW = 35;
-const CH = 14;
 
 class NodeState {
     /**
@@ -54,10 +53,12 @@ class NodeState {
 
         let n = Math.round(Math.sqrt(this.content.length));
         let {w, h} = this.content[0].drawSize();
+        w += CH;
+        h += CH;
         for (let i = 0; i < this.content.length; i++) {
             let r = divmod(i, n);
             ctx.save();
-            ctx.translate(r.div*w*1.1, r.mod*h*1.1);
+            ctx.translate(r.div*w, r.mod*h);
             this.content[i][key](ctx, ...args);
             ctx.restore();
         }
@@ -67,7 +68,7 @@ class NodeState {
         let e = this.content instanceof LeafState ? this.content : this.content[0];
         let n = this.content instanceof LeafState ? 1 : Math.round(Math.sqrt(this.content.length));
         let {w, h} = e.drawSize();
-        return {w: w*n*1.1, h: h*n*1.1};
+        return {w: w*n, h: h*n};
     }
 
     afterSplit(...args) {
@@ -196,10 +197,81 @@ class LeafState {
      * @param {!number} progress
      */
     drawSplit(ctx, progress) {
-        if (progress < 0.5) {
-            this.drawCarry(ctx, 0);
-        } else {
-            this.afterSplit().drawCarry(ctx, 0);
+        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
+        ctx.font = '12px monospace';
+
+        let w2 = Math.round(Math.sqrt(this.digit_grid[0].length));
+        let h2 = this.digit_grid[0].length / w2;
+
+        let t0 = 0;
+        let t1 = 0.4;
+        let t2 = 0.8;
+        let t3 = 0.9;
+        let g = make_grid(w, h, (c, r) => this.digit_grid[c][r]);
+        for (let c = 0; c < h; c++) {
+            for (let c2 = 0; c2 < w2; c2++) {
+                for (let r2 = 0; r2 < h2; r2++) {
+                    let r = c2*w2 + r2;
+                    let v = g[c][r];
+
+                    let x1 = c*CW + CW;
+                    let x2 = x1;
+                    let x3 = Math.floor(c/h2)*(w2+1)*CW + CW + c2*CW;
+                    let y1 = r*CH + CH*0.8;
+                    let y2 = r*CH + CH*0.8 + (c%h2)*(h2*CH+CH);
+                    let y3 = r2*CH + CH*0.8 + (c%h2)*(h2*2*CH+CH);
+                    let x = lerp_within(x1, x2, t0, t1, progress) ||
+                            lerp_within(x2, x3, t1, t2, progress) ||
+                            x3;
+                    let y = lerp_within(y1, y2, t0, t1, progress) ||
+                            lerp_within(y2, y3, t1, t2, progress) ||
+                            y3;
+
+                    if (r === 0 && progress < t1) {
+                        ctx.strokeRect(x-CW+6, y-CH, CW, CH*h+2);
+                    }
+                    if (r2 === 0) {
+                        let s = 0;
+                        if (progress > t1 && progress < t2) {
+                            s = (progress-t1)/(t2-t1);
+                        }
+                        if (progress >= t2) {
+                            s = 1;
+                        }
+                        let s2 = 1;
+                        if (progress >= t2 && progress <= t3) {
+                            s2 = 1-(progress-t2)/(t3-t2);
+                        }
+                        if (progress >= t3) {
+                            s2 = 0;
+                        }
+                        this.drawSeparatorSection(ctx, c*(1-s), x-CW+6, y-CH, CW, CH*h2*(1+s));
+                        ctx.strokeStyle = `rgba(0,0,0,${Math.min(1, progress/t1)*s2})`;
+                        ctx.strokeRect(x-CW+6, y-CH, CW, CH*h2*(1+s)+2*(1-s));
+                        if (c2 === 0 && progress >= t2) {
+                            ctx.strokeStyle = `#000`;
+                            ctx.strokeRect(x-CW+6, y-CH, CW*w2, CH*h2*2);
+                        }
+                    }
+                    ctx.fillStyle = sign_highlight(v);
+                    ctx.textAlign = 'right';
+                    ctx.fillText(v, x, y);
+                }
+                for (let r2 = h2; r2 < 2*h2; r2++) {
+                    let r = c2*w2 + r2;
+                    if (progress <= t2) {
+                        continue;
+                    }
+                    let x = Math.floor(c/h2)*(w2+1)*CW + CW + c2*CW;
+                    let y = r2*CH + CH*0.8 + (c%h2)*(h2*2*CH+CH);
+                    ctx.save();
+                    ctx.fillStyle = sign_highlight(0);
+                    ctx.globalAlpha = Math.min(1, (progress-t2)/(t3-t2));
+                    ctx.textAlign = 'right';
+                    ctx.fillText('0', x, y);
+                    ctx.restore();
+                }
+            }
         }
     }
 
@@ -278,6 +350,7 @@ class LeafState {
                 }
             }
         }
+        this.drawOutline(ctx);
     }
 
     afterCarry(allowNegative=true) {
@@ -350,6 +423,7 @@ class LeafState {
                 }
             }
         }
+        this.drawOutline(ctx);
     }
 
     /**
@@ -389,37 +463,42 @@ class LeafState {
             }
         }
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, -CH, w*CW, CH);
-        ctx.fillRect(0, h*CH, w*CW, CH);
+        ctx.fillRect(0, -11, w*CW, 11);
+        ctx.fillRect(0, h*CH, w*CW, 11);
+        this.drawOutline(ctx);
     }
 
+    drawOutline(ctx) {
+        let {w, h} = this.drawSize();
+        ctx.strokeStyle = '#000';
+        ctx.strokeRect(0, 0, w, h);
+    }
     drawSeparators(ctx) {
         for (let k = 0; k < this.digit_grid.length; k += this.focus_width) {
-            ctx.fillStyle = `rgba(0, 0, 0, ${k/this.digit_grid.length/4})`;
-            ctx.fillRect(k*CW+6, 0, this.focus_width*CW, this.digit_grid[0].length*CH);
-            ctx.strokeStyle = 'black';
-            ctx.save();
-            if (k > 0) {
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(k * CW + 6, 0);
-                ctx.lineTo(k * CW + 6, this.digit_grid[0].length * CH);
-                ctx.stroke();
-            }
-            if (this.focus_width > 1) {
-                ctx.beginPath();
-                ctx.setLineDash([4, 2]);
-                ctx.strokeStyle = '#AAA';
-                ctx.moveTo((k + this.focus_width / 2) * CW + 6, 0);
-                ctx.lineTo((k + this.focus_width / 2) * CW + 6, this.digit_grid[0].length * CH);
-                ctx.stroke();
-            }
-            ctx.restore();
+            this.drawSeparatorSection(ctx,k, k*CW+6, 0, this.focus_width*CW, this.digit_grid[0].length*CH);
         }
-
-        let {w, h} = this.drawSize();
+    }
+    drawSeparatorSection(ctx, k, x, y, w, h) {
+        ctx.save();
+        ctx.fillStyle = `rgba(0, 0, 0, ${k/this.digit_grid.length/4})`;
+        ctx.fillRect(x, y, w, h);
         ctx.strokeStyle = 'black';
-        ctx.strokeRect(0, 0, w, h);
+        if (k > 0) {
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + h);
+            ctx.stroke();
+        }
+        if (this.focus_width > 1) {
+            ctx.beginPath();
+            ctx.setLineDash([4, 2]);
+            ctx.strokeStyle = '#AAA';
+            ctx.moveTo(x + (w / 2), y);
+            ctx.lineTo(x + (w / 2), y + h);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 }
 
@@ -545,7 +624,7 @@ class Step {
             s => s.afterSplit(i),
             'split',
             '#FFA',
-            2);
+            5);
     }
 
     static carry() {
@@ -673,14 +752,16 @@ setTimeout(() => {
         }
     });
 
-    setInterval(() => {
+    function redraw() {
         try {
             let t = (window.performance.now() / DURATION_PER_STEP / shownAlgorithm.step.duration) % 1;
+            t += 0.17;
+            t %= 1;
             let ctx = canvas.getContext("2d");
             shownAlgorithm.draw(ctx, t);
-        } catch (ex) {
-            divStep1.innerText = "ERROR: " + ex;
-            throw ex;
+        } finally {
+            requestAnimationFrame(redraw);
         }
-    }, 50);
+    }
+    redraw();
 }, 0);
