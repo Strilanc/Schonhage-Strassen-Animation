@@ -5,7 +5,7 @@ import { divmod } from "src/util/util.js"
 let txtInput = /** @type {!HTMLTextAreaElement} */ document.getElementById('txt-input');
 let canvas = /** @type {!HTMLCanvasElement} */ document.getElementById('canvas-state');
 
-const DURATION_PER_STEP = 5000; // millis
+const DURATION_PER_STEP = 500; // millis
 const BLOCK_MARGIN = 12;
 
 function parseDigits(digit_string) {

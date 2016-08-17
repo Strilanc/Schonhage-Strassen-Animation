@@ -92,29 +92,28 @@ export default class LeafState {
      * @param {!number} progress
      */
     drawSplit(ctx, progress) {
-        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
-        ctx.font = '12px monospace';
+        let {w, h} = this.gridSize();
 
-        let w2 = Math.round(Math.sqrt(this.digit_grid[0].length));
-        let h2 = this.digit_grid[0].length / w2;
+        let w2 = Math.round(Math.sqrt(w));
+        let h2 = w / w2;
 
+        // Draw re-arranging columns.
         let t0 = 0;
         let t1 = 0.4;
         let t2 = 0.8;
         let t3 = 0.9;
-        let g = make_grid(w, h, (c, r) => this.digit_grid[c][r]);
         for (let c = 0; c < h; c++) {
             for (let c2 = 0; c2 < w2; c2++) {
                 for (let r2 = 0; r2 < h2; r2++) {
                     let r = c2*w2 + r2;
-                    let v = g[c][r];
+                    let v = this.digit_grid[c][r];
 
-                    let x1 = c*COL_W + COL_W;
+                    let x1 = c*COL_W;
                     let x2 = x1;
-                    let x3 = Math.floor(c/h2)*(w2+1)*COL_W + COL_W + c2*COL_W;
-                    let y1 = r*COL_H + COL_H*0.8;
-                    let y2 = r*COL_H + COL_H*0.8 + (c%h2)*(h2*COL_H+COL_H);
-                    let y3 = r2*COL_H + COL_H*0.8 + (c%h2)*(h2*2*COL_H+COL_H);
+                    let x3 = Math.floor(c/h2)*(w2+1)*COL_W + c2*COL_W;
+                    let y1 = r*COL_H;
+                    let y2 = r*COL_H + (c%h2)*(h2*COL_H+COL_H);
+                    let y3 = r2*COL_H + (c%h2)*(h2*2*COL_H+COL_H);
                     let x = tween(
                         progress,
                         {v:x1, t:t0},
@@ -127,35 +126,32 @@ export default class LeafState {
                         {v:y3, t:t2});
 
                     if (r === 0 && progress < t1) {
-                        ctx.strokeRect(x-COL_W+6, y-COL_H, COL_W, COL_H*h+2);
+                        ctx.strokeRect(x+6, y, COL_W, COL_H*h+2);
                     }
                     if (r2 === 0) {
                         let s = tween(progress, {v:0,t:t1}, {v:1,t:t2});
                         let s2 = tween(progress, {v:1,t:t2}, {v:0,t:t3});
-                        this.drawSeparatorSection(ctx, c*(1-s), x-COL_W+6, y-COL_H, COL_W, COL_H*h2*(1+s));
+                        this.drawSeparatorSection(ctx, c*(1-s), x+6, y, COL_W, COL_H*h2*(1+s));
                         ctx.strokeStyle = `rgba(0,0,0,${Math.min(1, progress/t1)*s2})`;
-                        ctx.strokeRect(x-COL_W+6, y-COL_H, COL_W, COL_H*h2*(1+s)+2*(1-s));
+                        ctx.strokeRect(x+6, y, COL_W, COL_H*h2*(1+s)+2*(1-s));
                         if (c2 === 0 && progress >= t2) {
                             ctx.strokeStyle = `#000`;
-                            ctx.strokeRect(x-COL_W+6, y-COL_H, COL_W*w2, COL_H*h2*2);
+                            ctx.strokeRect(x+6, y, COL_W*w2, COL_H*h2*2);
                         }
                     }
-                    ctx.fillStyle = sign_highlight(v);
-                    ctx.textAlign = 'right';
-                    ctx.fillText(v, x, y);
+                    this.drawCellNumber(ctx, v, x, y);
                 }
+
+                // Fade in padded zeroes.
                 for (let r2 = h2; r2 < 2*h2; r2++) {
-                    let r = c2*w2 + r2;
                     if (progress <= t2) {
                         continue;
                     }
-                    let x = Math.floor(c/h2)*(w2+1)*COL_W + COL_W + c2*COL_W;
-                    let y = r2*COL_H + COL_H*0.8 + (c%h2)*(h2*2*COL_H+COL_H);
+                    let x = Math.floor(c/h2)*(w2+1)*COL_W + c2*COL_W;
+                    let y = r2*COL_H + (c%h2)*(h2*2*COL_H+COL_H);
                     ctx.save();
-                    ctx.fillStyle = sign_highlight(0);
                     ctx.globalAlpha = Math.min(1, (progress-t2)/(t3-t2));
-                    ctx.textAlign = 'right';
-                    ctx.fillText('0', x, y);
+                    this.drawCellNumber(ctx, 0, x, y);
                     ctx.restore();
                 }
             }
@@ -170,17 +166,16 @@ export default class LeafState {
     drawHadamard(ctx, bit, progress) {
         this.drawSeparators(ctx);
 
-        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
-        ctx.font = '12px monospace';
-        let m = 1 << bit;
+        let {w, h} = this.gridSize();
+        let bitmask = 1 << bit;
         let w_high = w >> (bit + 1);
-        for (let c_low = 0; c_low < m; c_low++) {
+        for (let c_low = 0; c_low < bitmask; c_low++) {
             for (let r = 0; r < h; r++) {
-                let d = (h+1)*m*2;
+                let d = (h+1)*bitmask*2;
                 let t0 = (c_low*h + r) / d;
                 let t1 = (c_low*h + r+1) / d;
-                let t2 = (c_low*h + m*h + r) / d;
-                let t3 = (c_low*h + m*h + r + 1)/d;
+                let t2 = (c_low*h + bitmask*h + r) / d;
+                let t3 = (c_low*h + bitmask*h + r + 1)/d;
                 let showConnector = (progress >= t0 && progress < t1) || (progress >= t2 && progress <= t3);
                 let showFormula = progress >= t1 && progress < t3;
                 let showResult = progress >= t3;
@@ -188,14 +183,14 @@ export default class LeafState {
                 for (let c_high = 0; c_high < w_high; c_high++) {
 
                     let c_off = c_low | (c_high << (bit + 1));
-                    let c_on = c_off + m;
+                    let c_on = c_off + bitmask;
 
                     if (showConnector) {
                         ctx.beginPath();
                         let x1 = (c_off + 0.9)*COL_W;
                         let x2 = (c_on + 0.9)*COL_W;
                         let y1 = (r+0.5)*COL_H;
-                        let y2 = (r+0.5)*COL_H + (m-c_low)*3 + 30;
+                        let y2 = (r+0.5)*COL_H + (bitmask-c_low)*3 + 30;
                         ctx.moveTo(x1, y1);
                         ctx.bezierCurveTo(x1, y1, x2, y2, x2, y1);
                         ctx.strokeStyle = `#008`;
@@ -203,35 +198,22 @@ export default class LeafState {
                     }
 
                     for (let c_bit = 0; c_bit < 2; c_bit++) {
-                        let c = c_off + c_bit*m;
+                        let c = c_off + c_bit*bitmask;
                         let x = c*COL_W;
                         let y = r*COL_H;
                         let v_off = this.digit_grid[c_off][r];
                         let v_on = this.digit_grid[c_on][r];
-                        let v_in = this.digit_grid[c][r];
-                        let v_out = c_bit ? v_off - v_on : v_off + v_on;
                         if (showFormula) {
-                            ctx.textAlign = 'right';
-                            let cx = x + COL_W;
-                            let s1 = Math.abs(v_on) + '';
-                            let s2 = (c_bit != (v_on < 0)) ? '-' : '+';
-                            let s3 = v_off + '';
-                            ctx.fillStyle = sign_highlight(v_on);
-                            ctx.fillText(s1, cx, y + COL_H * 0.8);
-                            cx -= ctx.measureText(s1).width;
+                            let used = this.drawCellNumber(ctx, v_on, x, y, false);
                             ctx.fillStyle = sign_highlight(c_bit ? -1 : +1);
-                            ctx.fillText(s2, cx, y + COL_H * 0.8);
-                            cx -= ctx.measureText(s2).width;
+                            used += this.drawCellNumber(ctx, (c_bit != (v_on < 0)) ? '-' : '+', x, y, undefined, used);
                             ctx.fillStyle = sign_highlight(v_off);
-                            ctx.fillText(s3, cx, y + COL_H * 0.8);
+                            this.drawCellNumber(ctx, v_off, x, y, undefined, used);
                         } else {
+                            let v_in = this.digit_grid[c][r];
+                            let v_out = c_bit ? v_off - v_on : v_off + v_on;
                             let v = showResult ? v_out : v_in;
-                            let s = (!showFormula ? v+""
-                                : c_bit ? v_off + "-" + v_on
-                                : v_off + "+" + v_on).split("+-").join('-').split("--").join('+');
-                            ctx.fillStyle = sign_highlight(v);
-                            ctx.textAlign = 'right';
-                            ctx.fillText(s, x + COL_W, y + COL_H * 0.8);
+                            this.drawCellNumber(ctx, v, x, y);
                         }
                     }
                 }
@@ -264,14 +246,15 @@ export default class LeafState {
 
     drawCarry(ctx, progress, allowNegative=true) {
         this.drawSeparators(ctx);
-        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
-        ctx.font = '12px monospace';
 
-        let max_r = Math.floor(progress*(h*2+1));
+        let {w, h} = this.gridSize();
+        let carry_r = Math.floor(progress*(h*2+1));
         let g = make_grid(w, h, (c, r) => this.digit_grid[c][r]);
         for (let c = 0; c < w; c++) {
+            let x = c*COL_W;
+
             let carry = 0;
-            for (let r = 0; r < max_r; r++) {
+            for (let r = 0; r < carry_r; r++) {
                 if (r === h) {
                     carry = -carry;
                 }
@@ -284,37 +267,47 @@ export default class LeafState {
                 g[c][r % h] = v2;
                 carry = (v - v2) / 10;
             }
+
             for (let r = 0; r < h; r++) {
                 let v = g[c][r];
+                let y = r*COL_H;
 
-                ctx.fillStyle = sign_highlight(v);
-                ctx.textAlign = 'right';
+                let showCarry = r === carry_r || r + h === carry_r;
+                let used = this.drawCellNumber(ctx, v, x, y, showCarry);
+                if (showCarry) {
+                    this.drawCellNumber(ctx, carry, x, y, true, used);
 
-                if (r === max_r || r + h === max_r) {
-                    let s = (v>=0?'+':'') + v;
-                    ctx.fillText(s, c*COL_W + COL_W, r*COL_H + COL_H * 0.8);
-                    ctx.fillStyle = sign_highlight(carry);
-                    ctx.textAlign = 'right';
-                    let cx = c * COL_W + COL_W - ctx.measureText(s).width;
-                    ctx.fillText((carry >= 0 ? '+' : '') + carry, cx, r * COL_H + COL_H * 0.8);
-
-                    if (Math.abs(v) >= 10) {
+                    // Stroke out the digit or sign removed by carrying.
+                    if (Math.abs(v) >= 10 || (!allowNegative && v < 0)) {
                         ctx.beginPath();
                         ctx.moveTo(c*COL_W+COL_W-16, r*COL_H);
                         ctx.lineTo(c*COL_W+COL_W-8, r*COL_H+COL_H);
                         ctx.strokeStyle = v < 0 ? 'black' : 'red';
                         ctx.stroke();
                     }
-                } else {
-                    ctx.fillText(v, c*COL_W + COL_W, r*COL_H + COL_H * 0.8);
                 }
             }
         }
+
         this.drawOutline(ctx);
     }
 
     gridSize() {
         return {w: this.digit_grid.length, h: this.digit_grid[0].length};
+    }
+
+    drawCellNumber(ctx, val, x, y, use_sign=undefined, used=0) {
+        let text;
+        if (typeof val === typeof '') {
+            text = val;
+        } else {
+            text = (use_sign === true && val >= 0 ? '+' : '') + (use_sign === false ? Math.abs(val) : val);
+            ctx.fillStyle = sign_highlight(val);
+        }
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(text, x + COL_W - used, y + COL_H*0.8);
+        return ctx.measureText(text).width;
     }
 
     /**
@@ -326,7 +319,6 @@ export default class LeafState {
         this.drawSeparators(ctx);
 
         let {w, h} = this.gridSize();
-        ctx.font = '12px monospace';
         let bitmask = 1 << bit;
         for (let c = 0; c < w; c++) {
             let x = c*COL_W;
@@ -350,14 +342,10 @@ export default class LeafState {
                 v *= cycles % 2 === 0 ? 1 : -1;
 
                 // Draw cell (and its wrap-around partner, if on the border)
-                ctx.fillStyle = sign_highlight(v);
-                ctx.textAlign = 'right';
-                ctx.fillText(v, x + COL_W, y + COL_H*0.8);
+                this.drawCellNumber(ctx, v, x, y);
                 if (y > h*COL_H-COL_H) {
-                    ctx.fillStyle = sign_highlight(-v);
-                    ctx.fillText(""+-v, x + COL_W, y + COL_H*0.8 - h*COL_H);
+                    this.drawCellNumber(ctx, -v, x, y - h*COL_H);
                 }
-
             }
         }
 
