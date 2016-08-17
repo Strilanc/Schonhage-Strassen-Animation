@@ -313,6 +313,10 @@ export default class LeafState {
         this.drawOutline(ctx);
     }
 
+    gridSize() {
+        return {w: this.digit_grid.length, h: this.digit_grid[0].length};
+    }
+
     /**
      * @param {CanvasRenderingContext2D} ctx
      * @param {!int} bit
@@ -320,38 +324,48 @@ export default class LeafState {
      */
     drawRotate(ctx, bit, progress) {
         this.drawSeparators(ctx);
-        let [w, h] = [this.digit_grid.length, this.digit_grid[0].length];
+
+        let {w, h} = this.gridSize();
         ctx.font = '12px monospace';
-        let m = 1 << bit;
+        let bitmask = 1 << bit;
         for (let c = 0; c < w; c++) {
+            let x = c*COL_W;
+            let rotation_speed = (c & bitmask) === 0 ? 0 : (c & ~(bitmask-1));
+            let net_rotation = divmod(rotation_speed, h*2).mod;
+
+            // Slide bars.
+            if (rotation_speed !== 0) {
+                let slide_bar_y = divmod(net_rotation*COL_H*progress, h*COL_H).mod;
+                let target_slide_bar_y = divmod(net_rotation*COL_H, h*COL_H).mod;
+                ctx.fillStyle = 'red';
+                ctx.fillRect(x+6, target_slide_bar_y, COL_W, 1);
+                ctx.fillStyle = 'black';
+                ctx.fillRect(x+6, slide_bar_y, COL_W, 1);
+            }
+
+            // Numbers.
             for (let r = 0; r < h; r++) {
                 let v = this.digit_grid[c][r];
-                let slope = (c & m) === 0 ? 0 : (c & ~(m-1));
-                let slope_slow = divmod(slope, h*2).mod;
-                let {div, mod: y} = divmod(r*COL_H + slope_slow*progress*COL_H, h*COL_H);
-                v *= (div & 1) === 0 ? 1 : -1;
+                let {div: cycles, mod: y} = divmod(r*COL_H + net_rotation*progress*COL_H, h*COL_H);
+                v *= cycles % 2 === 0 ? 1 : -1;
+
+                // Draw cell (and its wrap-around partner, if on the border)
                 ctx.fillStyle = sign_highlight(v);
                 ctx.textAlign = 'right';
-                ctx.fillText(v, c * COL_W + COL_W, y + COL_H*0.8);
+                ctx.fillText(v, x + COL_W, y + COL_H*0.8);
                 if (y > h*COL_H-COL_H) {
-                    ctx.fillStyle = sign_highlight(v);
-                    ctx.fillText(""+-v, c*COL_W + COL_W, y + COL_H*0.8 - h*COL_H);
+                    ctx.fillStyle = sign_highlight(-v);
+                    ctx.fillText(""+-v, x + COL_W, y + COL_H*0.8 - h*COL_H);
                 }
-                if (r === 0 && slope !== 0) {
-                    ctx.fillStyle = 'red';
-                    let sy = divmod(r*COL_H + slope*COL_H, h*COL_H*2).mod;
-                    if (sy === h*COL_H) {
-                        sy -= 1;
-                    }
-                    ctx.fillRect(c*COL_W+6, sy % (h*COL_H), COL_W, 1);
-                    ctx.fillStyle = 'black';
-                    ctx.fillRect(c*COL_W+6, y, COL_W, 1);
-                }
+
             }
         }
+
+        // White-out numbers that were drawn past the bottom or top.
         ctx.fillStyle = 'white';
         ctx.fillRect(0, -11, w*COL_W, 11);
         ctx.fillRect(0, h*COL_H, w*COL_W, 11);
+
         this.drawOutline(ctx);
     }
 
