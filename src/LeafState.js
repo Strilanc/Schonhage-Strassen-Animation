@@ -2,6 +2,7 @@ import { make_grid, divmod } from "src/util/util.js"
 
 const COL_W = 35;
 const COL_H = 12;
+const NUMBER_MARGIN_RIGHT = 5;
 
 export default class LeafState {
     /**
@@ -47,7 +48,10 @@ export default class LeafState {
     }
 
     drawSize() {
-        return {w: this.digit_grid.length*COL_W+6, h: this.digit_grid[0].length*COL_H};
+        let {w, h} = this.gridSize();
+        w *= COL_W;
+        h *= COL_H;
+        return {w, h};
     }
     
     afterRotate(bit) {
@@ -96,49 +100,64 @@ export default class LeafState {
 
         let w2 = Math.round(Math.sqrt(w));
         let h2 = w / w2;
-
-        // Draw re-arranging columns.
         let t0 = 0;
         let t1 = 0.4;
         let t2 = 0.8;
         let t3 = 0.9;
+
+        let fx = (c, c2) => {
+            let x1 = c*COL_W;
+            let x2 = x1;
+            let x3 = Math.floor(c/h2)*(w2+1)*COL_W + c2*COL_W;
+            return tween(
+                progress,
+                {v:x1, t:t0},
+                {v:x2, t:t1},
+                {v:x3, t:t2});
+        };
+        let fy = (c, r) => {
+            let r2 = r % h2;
+            let y1 = r * COL_H;
+            let y2 = r * COL_H + (c % h2) * (h2 * COL_H + COL_H);
+            let y3 = r2 * COL_H + (c % h2) * (h2 * 2 * COL_H + COL_H);
+            return tween(
+                progress,
+                {v: y1, t: t0},
+                {v: y2, t: t1},
+                {v: y3, t: t2});
+        };
+        let growFactor = tween(progress, {v:1,t:t2}, {v:2,t:t3});
+        let fadeHighlightFactor = tween(progress, {v:1,t:t2}, {v:0,t:t3});
+
+        // Draw re-arranging columns.
         for (let c = 0; c < h; c++) {
+            let cx1 = fx(c, 0);
+            let cy1 = fy(c, 0);
+            let cx2 = fx(c, w2-1);
+            let cy2 = fy(c, h-h2);
+            let cdy = COL_H*h2*growFactor;
+
+            ctx.beginPath();
+            ctx.moveTo(cx1, cy1);
+            ctx.lineTo(cx1 + COL_W, cy1);
+            ctx.lineTo(cx2 + COL_W, cy2);
+            ctx.lineTo(cx2 + COL_W, cy2 + cdy);
+            ctx.lineTo(cx2, cy2 + cdy);
+            ctx.lineTo(cx1, cy1 + cdy);
+            ctx.closePath();
+            let cwf = Math.floor(255 - c/h/4*fadeHighlightFactor*255);
+            ctx.fillStyle = `rgba(${cwf}, ${cwf}, ${cwf}, 1)`;
+            ctx.strokeStyle = 'black';
+            ctx.fill();
+            ctx.stroke();
+
             for (let c2 = 0; c2 < w2; c2++) {
                 for (let r2 = 0; r2 < h2; r2++) {
                     let r = c2*w2 + r2;
                     let v = this.digit_grid[c][r];
+                    let x = fx(c, c2);
+                    let y = fy(c, r);
 
-                    let x1 = c*COL_W;
-                    let x2 = x1;
-                    let x3 = Math.floor(c/h2)*(w2+1)*COL_W + c2*COL_W;
-                    let y1 = r*COL_H;
-                    let y2 = r*COL_H + (c%h2)*(h2*COL_H+COL_H);
-                    let y3 = r2*COL_H + (c%h2)*(h2*2*COL_H+COL_H);
-                    let x = tween(
-                        progress,
-                        {v:x1, t:t0},
-                        {v:x2, t:t1},
-                        {v:x3, t:t2});
-                    let y = tween(
-                        progress,
-                        {v:y1, t:t0},
-                        {v:y2, t:t1},
-                        {v:y3, t:t2});
-
-                    if (r === 0 && progress < t1) {
-                        ctx.strokeRect(x+6, y, COL_W, COL_H*h+2);
-                    }
-                    if (r2 === 0) {
-                        let s = tween(progress, {v:0,t:t1}, {v:1,t:t2});
-                        let s2 = tween(progress, {v:1,t:t2}, {v:0,t:t3});
-                        this.drawSeparatorSection(ctx, c*(1-s), x+6, y, COL_W, COL_H*h2*(1+s));
-                        ctx.strokeStyle = `rgba(0,0,0,${Math.min(1, progress/t1)*s2})`;
-                        ctx.strokeRect(x+6, y, COL_W, COL_H*h2*(1+s)+2*(1-s));
-                        if (c2 === 0 && progress >= t2) {
-                            ctx.strokeStyle = `#000`;
-                            ctx.strokeRect(x+6, y, COL_W*w2, COL_H*h2*2);
-                        }
-                    }
                     this.drawCellNumber(ctx, v, x, y);
                 }
 
@@ -306,7 +325,8 @@ export default class LeafState {
         }
         ctx.font = '12px monospace';
         ctx.textAlign = 'right';
-        ctx.fillText(text, x + COL_W - used, y + COL_H*0.8);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + COL_W - used - NUMBER_MARGIN_RIGHT, y + COL_H/2);
         return ctx.measureText(text).width;
     }
 
@@ -324,21 +344,22 @@ export default class LeafState {
             let x = c*COL_W;
             let rotation_speed = (c & bitmask) === 0 ? 0 : (c & ~(bitmask-1));
             let net_rotation = divmod(rotation_speed, h*2).mod;
+            let dy = tween(progress, {t:0,v:0}, {t:1,v:net_rotation*COL_H});
 
             // Slide bars.
             if (rotation_speed !== 0) {
-                let slide_bar_y = divmod(net_rotation*COL_H*progress, h*COL_H).mod;
+                let slide_bar_y = divmod(dy, h*COL_H).mod;
                 let target_slide_bar_y = divmod(net_rotation*COL_H, h*COL_H).mod;
                 ctx.fillStyle = 'red';
-                ctx.fillRect(x+6, target_slide_bar_y, COL_W, 1);
+                ctx.fillRect(x, target_slide_bar_y, COL_W, 1);
                 ctx.fillStyle = 'black';
-                ctx.fillRect(x+6, slide_bar_y, COL_W, 1);
+                ctx.fillRect(x, slide_bar_y, COL_W, 1);
             }
 
             // Numbers.
             for (let r = 0; r < h; r++) {
                 let v = this.digit_grid[c][r];
-                let {div: cycles, mod: y} = divmod(r*COL_H + net_rotation*progress*COL_H, h*COL_H);
+                let {div: cycles, mod: y} = divmod(r*COL_H + dy, h*COL_H);
                 v *= cycles % 2 === 0 ? 1 : -1;
 
                 // Draw cell (and its wrap-around partner, if on the border)
@@ -365,7 +386,7 @@ export default class LeafState {
 
     drawSeparators(ctx) {
         for (let k = 0; k < this.digit_grid.length; k += this.focus_width) {
-            this.drawSeparatorSection(ctx,k, k*COL_W+6, 0, this.focus_width*COL_W, this.digit_grid[0].length*COL_H);
+            this.drawSeparatorSection(ctx,k, k*COL_W, 0, this.focus_width*COL_W, this.digit_grid[0].length*COL_H);
         }
     }
 
@@ -421,7 +442,9 @@ function tween(t, ...waypoints) {
         if (n.t < t) {
             continue;
         }
-        return p.v + (t-p.t)*(n.v - p.v)/(n.t - p.t);
+        let r = (t-p.t)/(n.t - p.t);
+        r = (-Math.cos(r*Math.PI)+1)/2;
+        return p.v + (n.v - p.v)*r;
     }
     return waypoints[waypoints.length - 1].v;
 }

@@ -5,7 +5,7 @@ import { divmod } from "src/util/util.js"
 let txtInput = /** @type {!HTMLTextAreaElement} */ document.getElementById('txt-input');
 let canvas = /** @type {!HTMLCanvasElement} */ document.getElementById('canvas-state');
 
-const DURATION_PER_STEP = 500; // millis
+const DURATION_PER_STEP = 1000; // millis
 const BLOCK_MARGIN = 12;
 
 function parseDigits(digit_string) {
@@ -164,6 +164,7 @@ setTimeout(() => {
         try {
             let t = (window.performance.now() / DURATION_PER_STEP / shownAlgorithm.step.duration) % 1;
             let ctx = canvas.getContext("2d");
+            ctx.setTransform(1, 0, 0, 1, 0.5, 0.5);
             shownAlgorithm.draw(ctx, t);
         } finally {
             requestAnimationFrame(redraw);
